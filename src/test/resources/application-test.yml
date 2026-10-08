@@ -1,0 +1,16 @@
+spring:
+  autoconfigure:
+    exclude: org.springframework.boot.session.data.redis.autoconfigure.SessionDataRedisAutoConfiguration
+  datasource:
+    url: jdbc:h2:mem:kufim-test;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
+    driver-class-name: org.h2.Driver
+    username: sa
+    password: ""
+
+logging:
+  level:
+    org.springframework.security: WARN
+
+app:
+  rate-limit:
+    admin-login-per-minute: 100
