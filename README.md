@@ -25,7 +25,7 @@ IntelliJ에서는 `.run/KUFIM Backend.run.xml` 실행 구성을 사용합니다.
 - 웨이팅 등록과 호출은 `Idempotency-Key`를 받을 수 있습니다. 같은 키로 재시도하면 저장된 첫 응답을 반환합니다.
 - 등록 제한은 토큰당 10회/분과 IP당 60회/분, 관리자 로그인은 IP당 5회/분입니다. 초과 시 `429`와 `Retry-After`를 반환합니다.
 
-로컬 개발용 총괄 계정은 처음 실행할 때 환경변수를 지정한 경우에만 생성됩니다.
+총괄 관리자 계정은 처음 실행할 때 환경변수를 지정한 경우에만 생성됩니다. 프로필과 무관하게 동작하므로 운영(`mysql`) DB의 첫 계정도 같은 방법으로 만듭니다.
 
 ```bash
 export KUFIM_ADMIN_LOGIN=admin
@@ -61,6 +61,8 @@ export KUFIM_ADMIN_PASSWORD='직접-정한-개발용-비밀번호'
 
 ## 운영 설정
 
+무료 서버 1대에 Docker Compose로 올리는 절차는 [deploy/README.md](deploy/README.md)를 참고하세요. 아래는 직접 실행할 때의 환경변수입니다.
+
 `mysql` 프로필은 MySQL과 Redis 세션 저장소를 사용합니다. MySQL 8.0.19 이상에서 사용할 수 있는 `DROP CONSTRAINT` 구문을 포함합니다. 이 프로필의 Swagger는 기본 비활성이며 세션 쿠키는 Secure로 설정됩니다.
 
 ```bash
@@ -80,7 +82,8 @@ QR에는 `FRONTEND_BASE_URL/w/{boothCode}`가 들어갑니다. 이미 적용된 
 ## 현재 연결이 필요한 부분
 
 - SMS 공급자 자격 증명과 발송 방식이 정해지지 않아 실제 문자는 보내지 않습니다. 호출 상태와 앱 알림은 동작하며 호출 응답에는 `smsStatus=NOT_CONFIGURED`가 표시되고 이력이 저장됩니다.
-- FE는 아직 API를 호출하는 방식으로 연결되지 않았습니다. 브라우저 토큰 저장, `/waitings/me` 자동 조회, `/w/{boothCode}` 라우트, 관리자 로그인·CSRF 헤더, 호출·입장 버튼을 FE에서 연결해야 합니다.
+- FE(KUFIM-FE `JGN_BE_APPLY`)는 `VITE_DATA_SOURCE=api`로 이 API와 STOMP 토픽에 연결됩니다.
+- `mysql` 프로필은 `server.forward-headers-strategy=native`로 리버스 프록시의 `X-Forwarded-For`를 사용합니다. Tomcat은 사설망(도커 네트워크·localhost 등)에서 들어온 요청의 헤더만 신뢰하므로 인터넷에서 보낸 위조 헤더는 무시됩니다. `deploy/` 구성에서는 백엔드 포트를 외부에 열지 않습니다.
 - WebSocket은 단일 서버의 내장 STOMP 브로커입니다. 여러 서버로 확장할 때 공유 브로커를 설정해야 합니다.
 - MySQL·Redis 실서버 및 SMS 공급자 연결은 로컬 H2 통합 테스트 범위 밖입니다.
 
