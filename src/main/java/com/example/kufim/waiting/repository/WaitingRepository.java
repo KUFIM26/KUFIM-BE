@@ -27,6 +27,8 @@ public interface WaitingRepository extends JpaRepository<Waiting, Long> {
     /** 부스별 대기 팀 수를 한 번에 셉니다. [boothId, count] */
     @Query("select w.booth.id, count(w) from Waiting w where w.status = com.example.kufim.waiting.entity.WaitingStatus.WAITING group by w.booth.id")
     List<Object[]> countWaitingByBooth();
+    @Query("select w from Waiting w join fetch w.booth where w.registeredAt >= :from and w.registeredAt <= :to order by w.registeredAt, w.id")
+    List<Waiting> export(@Param("from") LocalDateTime from, @Param("to") LocalDateTime to);
     long countByBoothIdAndStatus(Long boothId, WaitingStatus status);
     long countByBoothIdAndStatusAndClosedAtGreaterThanEqual(Long boothId, WaitingStatus status, LocalDateTime since);
     long countByBoothIdAndStatusAndRegisteredAtBefore(Long boothId, WaitingStatus status, LocalDateTime before);

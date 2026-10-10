@@ -3,6 +3,7 @@ package com.example.kufim.stage.controller;
 import com.example.kufim.common.dto.ApiResponse;
 import com.example.kufim.common.exception.ContractException;
 import com.example.kufim.common.util.ApiClock;
+import com.example.kufim.common.util.Csv;
 import com.example.kufim.security.AdminAccess;
 import com.example.kufim.stage.entity.CongestionLevel;
 import com.example.kufim.stage.entity.CongestionLog;
@@ -12,18 +13,14 @@ import com.example.kufim.stage.repository.StageRepository;
 import com.example.kufim.stage.repository.StageZoneRepository;
 import com.example.kufim.waiting.service.WaitingRealtimePublisher;
 import io.swagger.v3.oas.annotations.Operation;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
@@ -35,7 +32,6 @@ import org.springframework.web.bind.annotation.*;
 public class CongestionApiController {
     static final int MAX_ACTIVE_ZONES = 10;
     static final int MAX_PEOPLE = 9999;
-    private static final DateTimeFormatter CSV_TIME = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
     private final AdminAccess access;
     private final StageRepository stages;
@@ -140,18 +136,11 @@ public class CongestionApiController {
         access.superAdmin();
         LocalDateTime start = from == null ? LocalDateTime.of(2000, 1, 1, 0, 0) : local(from);
         LocalDateTime end = to == null ? ApiClock.now() : local(to);
-        var out = new StringBuilder("﻿recorded_at,stage,zone,level,estimated_people,recorded_by\r\n");
-        for (var l : logs.export(start, end)) {
-            out.append(CSV_TIME.format(l.getRecordedAt())).append(',')
-                    .append(csv(l.getZone().getStage().getName())).append(',')
-                    .append(csv(l.getZone().getName())).append(',')
-                    .append(l.getLevel()).append(',')
-                    .append(l.getEstimatedPeople() == null ? "" : l.getEstimatedPeople()).append(',')
-                    .append(csv(l.getRecordedBy() == null ? "" : l.getRecordedBy().getName())).append("\r\n");
-        }
-        return ResponseEntity.ok().contentType(new MediaType("text", "csv", StandardCharsets.UTF_8))
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=kufim-congestion.csv")
-                .body(out.toString().getBytes(StandardCharsets.UTF_8));
+        var csv = new Csv("recorded_at", "stage", "zone", "level", "estimated_people", "recorded_by");
+        for (var l : logs.export(start, end))
+            csv.row(l.getRecordedAt(), l.getZone().getStage().getName(), l.getZone().getName(), l.getLevel(),
+                    l.getEstimatedPeople(), l.getRecordedBy() == null ? "" : l.getRecordedBy().getName());
+        return csv.download("kufim-congestion.csv");
     }
 
     /** 공개 응답에는 입력자를 넣지 않습니다. */
@@ -174,12 +163,6 @@ public class CongestionApiController {
         String trimmed = name.trim();
         if (trimmed.isEmpty() || trimmed.length() > 100) throw invalid("구역 이름은 1~100자로 입력해 주세요.");
         return trimmed;
-    }
-    // Excel에서 수식으로 해석되지 않도록 =,+,-,@로 시작하는 값은 앞에 '를 붙입니다.
-    private static String csv(String value) {
-        String v = value == null ? "" : value;
-        if (!v.isEmpty() && "=+-@".indexOf(v.charAt(0)) >= 0) v = "'" + v;
-        return "\"" + v.replace("\"", "\"\"") + "\"";
     }
     private LocalDateTime local(OffsetDateTime time) { return time.atZoneSameInstant(ZoneId.of("Asia/Seoul")).toLocalDateTime(); }
     private ContractException zoneLimit() {

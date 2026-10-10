@@ -42,6 +42,7 @@ class ListPerformanceIntegrationTest {
 
     private final HttpClient client = HttpClient.newHttpClient();
     private long boothId;
+    private long exportBoothId;
     private List<String> cookies;
     private String csrf;
 
@@ -52,6 +53,8 @@ class ListPerformanceIntegrationTest {
         var festival = festivals.saveAndFlush(Festival.builder().name("목록 축제")
                 .startAt(LocalDateTime.of(2026, 10, 1, 9, 0)).endAt(LocalDateTime.of(2026, 12, 31, 23, 0)).build());
         boothId = booths.saveAndFlush(Booth.builder().festival(festival).name("목록 부스").place("청심대")
+                .waitingEnabled(true).build()).getId();
+        exportBoothId = booths.saveAndFlush(Booth.builder().festival(festival).name("내보내기 부스").place("청심대")
                 .waitingEnabled(true).build()).getId();
         var login = client.send(HttpRequest.newBuilder(URI.create(url("/api/v1/admin/auth/login")))
                 .header("Content-Type", "application/json")
@@ -119,6 +122,23 @@ class ListPerformanceIntegrationTest {
                 .POST(HttpRequest.BodyPublishers.ofString("{\"title\":\"x\",\"content\":\"x\",\"category\":\"INFO\"}")));
         assertThat(noCsrf.statusCode()).isEqualTo(403);
         assertThat(json.readTree(noCsrf.body()).path("error").path("code").asString()).isEqualTo("A005");
+    }
+
+    @Test
+    void waitingExportHasNoPersonalData() throws Exception {
+        String token = UUID.randomUUID().toString();
+        var res = send(HttpRequest.newBuilder(URI.create(url("/api/v1/booths/" + exportBoothId + "/waitings")))
+                .header("Content-Type", "application/json").header("X-Client-Token", token)
+                .POST(HttpRequest.BodyPublishers.ofString(
+                        "{\"studentNumber\":\"202699999\",\"phoneNumber\":\"01099998888\",\"partySize\":5,\"privacyConsent\":true}")));
+        assertThat(res.statusCode()).as(res.body()).isEqualTo(201);
+
+        var csv = client.send(admin("/api/v1/admin/analytics/waitings.csv").GET().build(), HttpResponse.BodyHandlers.ofByteArray());
+        assertThat(csv.statusCode()).isEqualTo(200);
+        var text = new String(csv.body(), java.nio.charset.StandardCharsets.UTF_8);
+        assertThat(text).startsWith("﻿booth_id,booth_name,waiting_number,party_size,status,registered_at");
+        assertThat(text).contains("\"내보내기 부스\",1,5,WAITING,");
+        assertThat(text).doesNotContain("202699999", "01099998888", token);
     }
 
     private JsonNode boothRow() throws Exception {
