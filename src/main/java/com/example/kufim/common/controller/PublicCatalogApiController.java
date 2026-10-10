@@ -18,7 +18,9 @@ import com.example.kufim.notification.repository.NotificationRepository;
 import com.example.kufim.performance.entity.*;
 import com.example.kufim.performance.repository.PerformanceRepository;
 import com.example.kufim.stage.entity.Stage;
+import com.example.kufim.stage.controller.CongestionApiController;
 import com.example.kufim.stage.repository.StageRepository;
+import com.example.kufim.stage.repository.StageZoneRepository;
 import com.example.kufim.waiting.entity.WaitingStatus;
 import com.example.kufim.waiting.repository.WaitingRepository;
 import com.example.kufim.waiting.service.ClientToken;
@@ -41,6 +43,7 @@ public class PublicCatalogApiController {
     private final BoothRepository booths;
     private final FacilityRepository facilities;
     private final StageRepository stages;
+    private final StageZoneRepository stageZones;
     private final MapFloorplanRepository floorplans;
     private final MapPinRepository pins;
     private final NoticeRepository notices;
@@ -147,9 +150,19 @@ public class PublicCatalogApiController {
 
     @GetMapping("/stages")
     public ApiResponse<List<Map<String, Object>>> stages() {
-        return ApiResponse.ok(stages.findAll().stream().sorted(Comparator.comparingInt(Stage::getDisplayOrder))
-                .map(s -> Map.<String, Object>of("stageId", s.getId(), "name", s.getName(), "entryStatus", s.getEntryStatus(),
-                        "displayOrder", s.getDisplayOrder())).toList());
+        // 활성 구역과 최신 혼잡도를 한 번에 읽고, 클라이언트의 15분 만료 판정용 서버 시각을 함께 줍니다(STG-007).
+        var zonesByStage = stageZones.findActiveWithLatest().stream()
+                .collect(java.util.stream.Collectors.groupingBy(z -> z.getStage().getId(), LinkedHashMap::new,
+                        java.util.stream.Collectors.mapping(z -> CongestionApiController.zoneView(z, false),
+                                java.util.stream.Collectors.toList())));
+        var serverTime = ApiClock.offset(ApiClock.now());
+        return ApiResponse.ok(stages.findAll().stream().sorted(Comparator.comparingInt(Stage::getDisplayOrder)).map(s -> {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("stageId", s.getId()); row.put("name", s.getName()); row.put("entryStatus", s.getEntryStatus());
+            row.put("displayOrder", s.getDisplayOrder()); row.put("zones", zonesByStage.getOrDefault(s.getId(), List.of()));
+            row.put("serverTime", serverTime);
+            return row;
+        }).toList());
     }
 
     @GetMapping("/map")

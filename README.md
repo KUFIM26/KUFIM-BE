@@ -53,9 +53,10 @@ export KUFIM_ADMIN_PASSWORD='직접-정한-개발용-비밀번호'
 | 이용자 알림 | `/api/v1/notifications`, `/notifications/{notificationId}/read`, `/notifications/read-all` |
 | 관리자 인증·계정 | `/api/v1/admin/auth/*`, `/admin/accounts/*` |
 | 관리자 콘텐츠 | `/api/v1/admin/festivals`, `/admin/map/floorplans`, `/performances`, `/booths`, `/facilities`, `/notices`, `/stages` |
+| 무대 혼잡도 | `/api/v1/stages`(구역·최신 혼잡도 포함), `/stages/{id}/congestion/history`, `/admin/stages/{id}/zones`, `/admin/zones/{id}`, `/admin/zones/{id}/congestion`, `/admin/analytics/congestion.csv` |
 | 관리자 웨이팅 | `/api/v1/admin/booths/{boothId}/waitings`, `/waiting-config`, `/admin/waitings/{waitingId}/call` 등 |
 | 운영 | `/api/v1/admin/booths/{boothId}/qr`, `/admin/audit-logs`, `/admin/privacy/purge` |
-| 실시간 | `/ws` STOMP, `/topic/notice`, `/topic/booth/{id}/waiting`, `/topic/waiting/{waitingId}`, `/topic/admin/booth/{id}/waiting` |
+| 실시간 | `/ws` STOMP, `/topic/notice`, `/topic/congestion`, `/topic/booth/{id}/waiting`, `/topic/waiting/{waitingId}`, `/topic/admin/booth/{id}/waiting` |
 
 응답은 `{ "success": true, "data": ..., "error": null }` 형식입니다. 관리자 명단에서는 학번·전화번호가 마스킹되고, 원문 전화번호는 담당자 전용 `/admin/waitings/{waitingId}/contact`에서만 조회하며 접근 이력이 남습니다. 상세 요청·응답 필드는 명세서를 참조해 주세요.
 

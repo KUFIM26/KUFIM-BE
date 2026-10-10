@@ -4,8 +4,6 @@
 
 | 테이블 | 보류 이유 | 예정 관계 |
 |---|---|---|
-| stage_zone | 무대 구역별 UI 없음 | stage → stage_zone |
-| congestion_log | 혼잡도 입력·이력 UI 없음 | stage_zone → congestion_log |
 | booth_image | 부스 갤러리 UI 없음 | booth → booth_image |
 | translation_cache | 다국어·번역 관리 없음 | 독립 캐시 |
 | map_calibration_point | GPS와 도면 좌표 변환 없음 | map_floorplan → map_calibration_point |

@@ -49,7 +49,8 @@ public class WaitingWebSocketConfig implements WebSocketMessageBrokerConfigurer 
                 if (stomp.getCommand() != StompCommand.SUBSCRIBE) return message;
                 String destination = stomp.getDestination();
                 if (destination == null) throw new AccessDeniedException("구독 경로가 필요합니다.");
-                if (destination.equals("/topic/notice") || destination.matches("/topic/booth/[0-9]+/waiting")) return message;
+                if (destination.equals("/topic/notice") || destination.equals("/topic/congestion")
+                        || destination.matches("/topic/booth/[0-9]+/waiting")) return message;
                 if (destination.matches("/topic/waiting/[0-9a-f-]{36}")) {
                     String id = destination.substring("/topic/waiting/".length());
                     var attrs = stomp.getSessionAttributes();
