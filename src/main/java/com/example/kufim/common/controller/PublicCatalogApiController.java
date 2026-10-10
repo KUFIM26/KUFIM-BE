@@ -112,13 +112,18 @@ public class PublicCatalogApiController {
                 .filter(b -> organizerType == null || b.getOrganizerType() == organizerType)
                 .filter(b -> !waitingOnly || b.isWaitingEnabled())
                 .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+        // 부스별 대기 수와 핀을 한 번씩만 읽습니다(부스마다 조회하지 않음).
+        Map<Long, Long> counts = new HashMap<>();
+        for (Object[] row : waitings.countWaitingByBooth()) counts.put((Long) row[0], (Long) row[1]);
+        var pinMap = pinsOf(MapTargetType.BOOTH);
         if (sort != null) {
             if (!sort.equals("popular")) throw invalid();
             source.removeIf(b -> b.getAcceptingStatus() == AcceptingStatus.CLOSED);
-            source.sort(Comparator.<Booth>comparingLong(b -> waitings.countByBoothIdAndStatus(b.getId(), WaitingStatus.WAITING))
+            source.sort(Comparator.<Booth>comparingLong(b -> counts.getOrDefault(b.getId(), 0L))
                     .reversed().thenComparingLong(Booth::getId));
         }
-        return ApiResponse.ok(source.stream().limit(limit == null ? Long.MAX_VALUE : limit).map(this::boothView).toList());
+        return ApiResponse.ok(source.stream().limit(limit == null ? Long.MAX_VALUE : limit)
+                .map(b -> boothView(b, counts.getOrDefault(b.getId(), 0L), pinMap.get(b.getId()))).toList());
     }
 
     @GetMapping("/booths/{id}")
@@ -139,13 +144,15 @@ public class PublicCatalogApiController {
 
     @GetMapping("/facilities")
     public ApiResponse<List<Map<String, Object>>> facilities(@RequestParam(required = false) FacilityType type) {
+        var pinMap = pinsOf(MapTargetType.FACILITY);
         return ApiResponse.ok(facilities.findAllByDeletedFalseOrderByIdAsc().stream()
-                .filter(f -> type == null || f.getType() == type).map(this::facilityView).toList());
+                .filter(f -> type == null || f.getType() == type).map(f -> facilityView(f, pinMap.get(f.getId()))).toList());
     }
 
     @GetMapping("/facilities/{id}")
     public ApiResponse<Map<String, Object>> facility(@PathVariable long id) {
-        return ApiResponse.ok(facilityView(facilities.findByIdAndDeletedFalse(id).orElseThrow(() -> missing("시설"))));
+        var f = facilities.findByIdAndDeletedFalse(id).orElseThrow(() -> missing("시설"));
+        return ApiResponse.ok(facilityView(f, pins.findByTargetTypeAndTargetId(MapTargetType.FACILITY, f.getId()).orElse(null)));
     }
 
     @GetMapping("/stages")
@@ -178,20 +185,24 @@ public class PublicCatalogApiController {
             @RequestParam(required = false) FacilityType facilityType) {
         var result = new ArrayList<Map<String, Object>>();
         var latestFloorplan = floorplans.findAll().stream().map(MapFloorplan::getId).max(Long::compareTo).orElse(null);
+        // 핀마다 대상을 조회하지 않도록 부스·시설·무대를 한 번씩 읽어 둡니다.
+        var boothById = booths.findAllByDeletedFalseOrderByIdAsc().stream().collect(java.util.stream.Collectors.toMap(Booth::getId, b -> b));
+        var facilityById = facilities.findAllByDeletedFalseOrderByIdAsc().stream().collect(java.util.stream.Collectors.toMap(Facility::getId, f -> f));
+        var stageById = stages.findAll().stream().collect(java.util.stream.Collectors.toMap(Stage::getId, s -> s));
         for (var pin : pins.findAll()) {
             if (latestFloorplan == null || !pin.getFloorplan().getId().equals(latestFloorplan)) continue;
             if (targetType != null && pin.getTargetType() != targetType) continue;
             if (pin.getTargetType() == MapTargetType.BOOTH) {
-                var b = booths.findByIdAndDeletedFalse(pin.getTargetId());
-                if (b.isEmpty() || period != null && b.get().getPeriod() != period || organizerType != null && b.get().getOrganizerType() != organizerType) continue;
-                result.add(pinView(pin, b.get().getName()));
+                var b = boothById.get(pin.getTargetId());
+                if (b == null || period != null && b.getPeriod() != period || organizerType != null && b.getOrganizerType() != organizerType) continue;
+                result.add(pinView(pin, b.getName()));
             } else if (pin.getTargetType() == MapTargetType.FACILITY) {
-                var f = facilities.findByIdAndDeletedFalse(pin.getTargetId());
-                if (f.isEmpty() || facilityType != null && f.get().getType() != facilityType) continue;
-                result.add(pinView(pin, f.get().getName()));
+                var f = facilityById.get(pin.getTargetId());
+                if (f == null || facilityType != null && f.getType() != facilityType) continue;
+                result.add(pinView(pin, f.getName()));
             } else {
-                var s = stages.findById(pin.getTargetId());
-                if (s.isPresent()) result.add(pinView(pin, s.get().getName()));
+                var s = stageById.get(pin.getTargetId());
+                if (s != null) result.add(pinView(pin, s.getName()));
             }
         }
         return ApiResponse.ok(result);
@@ -202,18 +213,19 @@ public class PublicCatalogApiController {
             @RequestParam(defaultValue = "false") boolean urgentOnly,
             @RequestHeader(value = "X-Client-Token", required = false) String rawToken) {
         String token = rawToken == null ? null : ClientToken.require(rawToken);
-        return ApiResponse.ok(notices.findAllByDeletedFalseAndPublishedAtLessThanEqualOrderByPublishedAtDesc(ApiClock.now()).stream()
+        var list = notices.findAllByDeletedFalseAndPublishedAtLessThanEqualOrderByPublishedAtDesc(ApiClock.now()).stream()
                 .filter(n -> category == null || n.getCategory() == category)
-                .filter(n -> !urgentOnly || n.getCategory() == NoticeCategory.URGENT)
-                .map(n -> noticeView(n, token)).toList());
+                .filter(n -> !urgentOnly || n.getCategory() == NoticeCategory.URGENT).toList();
+        var unread = unreadOf(list, token);
+        return ApiResponse.ok(list.stream().map(n -> noticeView(n, unread)).toList());
     }
 
     @GetMapping("/notices/{id}")
     public ApiResponse<Map<String, Object>> notice(@PathVariable long id,
             @RequestHeader(value = "X-Client-Token", required = false) String rawToken) {
         String token = rawToken == null ? null : ClientToken.require(rawToken);
-        return ApiResponse.ok(noticeView(notices.findByIdAndDeletedFalseAndPublishedAtLessThanEqual(id, ApiClock.now())
-                .orElseThrow(() -> missing("공지")), token));
+        var n = notices.findByIdAndDeletedFalseAndPublishedAtLessThanEqual(id, ApiClock.now()).orElseThrow(() -> missing("공지"));
+        return ApiResponse.ok(noticeView(n, unreadOf(List.of(n), token)));
     }
 
     private Map<String, Object> performanceView(Performance p, boolean detail) {
@@ -229,30 +241,59 @@ public class PublicCatalogApiController {
         return result;
     }
     private Map<String, Object> boothView(Booth b) {
+        return boothView(b, waitings.countByBoothIdAndStatus(b.getId(), WaitingStatus.WAITING),
+                pins.findByTargetTypeAndTargetId(MapTargetType.BOOTH, b.getId()).orElse(null));
+    }
+    /** 목록 화면에서 대기 팀 수·예상 시간을 함께 보여 주도록 포함합니다(웨이팅을 쓰지 않는 부스는 null). */
+    private Map<String, Object> boothView(Booth b, long waitingCount, MapPin pin) {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("boothId", b.getId()); result.put("name", b.getName()); result.put("organizerType", b.getOrganizerType());
         result.put("period", b.getPeriod()); result.put("place", b.getPlace()); result.put("operatingHours", b.getOperatingHours());
         result.put("waitingEnabled", b.isWaitingEnabled()); result.put("waitingStatus", b.isWaitingEnabled() ? b.getAcceptingStatus().name() : "DISABLED");
-        result.put("pin", pins.findByTargetTypeAndTargetId(MapTargetType.BOOTH, b.getId()).map(p -> Map.of("xPercent", p.getXPercent(), "yPercent", p.getYPercent())).orElse(null));
+        result.put("waitingTeamCount", b.isWaitingEnabled() ? waitingCount : null);
+        result.put("estimatedWaitMinutes", b.isWaitingEnabled() ? waitingCount * b.getEstimateMinutesPerTeam() : null);
+        result.put("pin", pinPosition(pin));
         return result;
     }
-    private Map<String, Object> facilityView(Facility f) {
+    private Map<String, Object> facilityView(Facility f, MapPin pin) {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("facilityId", f.getId()); result.put("type", f.getType()); result.put("name", f.getName());
         result.put("description", f.getDescription()); result.put("place", f.getPlace()); result.put("operatingHours", f.getOperatingHours());
-        result.put("pin", pins.findByTargetTypeAndTargetId(MapTargetType.FACILITY, f.getId()).map(p -> Map.of("xPercent", p.getXPercent(), "yPercent", p.getYPercent())).orElse(null));
+        result.put("pin", pinPosition(pin));
+        return result;
+    }
+    private Map<String, Object> pinPosition(MapPin p) {
+        return p == null ? null : Map.of("xPercent", p.getXPercent(), "yPercent", p.getYPercent());
+    }
+    private Map<Long, MapPin> pinsOf(MapTargetType type) {
+        Map<Long, MapPin> result = new HashMap<>();
+        for (var p : pins.findAll()) if (p.getTargetType() == type) result.put(p.getTargetId(), p);
+        return result;
+    }
+    /** 공지별 읽음 여부를 두 번의 조회로 구합니다. 토큰이 없으면 null. */
+    private Map<Long, Boolean> unreadOf(List<Notice> list, String token) {
+        if (token == null || list.isEmpty()) return null;
+        var notificationByNotice = notifications.findByNoticeIdIn(list.stream().map(Notice::getId).toList()).stream()
+                .collect(java.util.stream.Collectors.toMap(a -> a.getNotice().getId(), a -> a.getId(), (x, y) -> x));
+        var read = notificationByNotice.isEmpty() ? java.util.Set.<Long>of()
+                : reads.findByClientTokenAndNotificationIdIn(token, notificationByNotice.values()).stream()
+                        .map(r -> r.getNotification().getId()).collect(java.util.stream.Collectors.toSet());
+        Map<Long, Boolean> result = new HashMap<>();
+        for (var n : list) {
+            Long notificationId = notificationByNotice.get(n.getId());
+            result.put(n.getId(), notificationId != null && !read.contains(notificationId));
+        }
         return result;
     }
     private Map<String, Object> pinView(MapPin p, String name) {
         return Map.of("pinId", p.getId(), "targetType", p.getTargetType(), "targetId", p.getTargetId(),
                 "name", name, "xPercent", p.getXPercent(), "yPercent", p.getYPercent());
     }
-    private Map<String, Object> noticeView(Notice n, String token) {
+    private Map<String, Object> noticeView(Notice n, Map<Long, Boolean> unread) {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("noticeId", n.getId()); result.put("title", n.getTitle()); result.put("content", n.getContent());
         result.put("category", n.getCategory()); result.put("publishedAt", ApiClock.offset(n.getPublishedAt()));
-        result.put("unread", token == null ? null : notifications.findAll().stream().filter(a -> a.getNotice() != null && a.getNotice().getId().equals(n.getId()))
-                .findFirst().map(a -> reads.findByNotificationIdAndClientToken(a.getId(), token).isEmpty()).orElse(false));
+        result.put("unread", unread == null ? null : unread.getOrDefault(n.getId(), false));
         return result;
     }
     private ContractException missing(String what) { return new ContractException(HttpStatus.NOT_FOUND,"RESOURCE_NOT_FOUND",what + "을(를) 찾을 수 없습니다."); }

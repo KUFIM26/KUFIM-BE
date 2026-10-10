@@ -48,7 +48,10 @@ public class SecurityConfig {
                         .accessDeniedHandler((request, response, exception) -> {
                             response.setStatus(403);
                             response.setContentType("application/json;charset=UTF-8");
-                            response.getWriter().write("{\"success\":false,\"data\":null,\"error\":{\"code\":\"A003\",\"message\":\"접근 권한이 없습니다.\"}}");
+                            // CSRF 토큰 문제는 권한 부족과 달리 다시 로그인하면 해결되므로 코드를 나눕니다.
+                            response.getWriter().write(exception instanceof org.springframework.security.web.csrf.CsrfException
+                                    ? "{\"success\":false,\"data\":null,\"error\":{\"code\":\"A005\",\"message\":\"보안 토큰이 만료되었습니다. 다시 로그인해 주세요.\"}}"
+                                    : "{\"success\":false,\"data\":null,\"error\":{\"code\":\"A003\",\"message\":\"접근 권한이 없습니다.\"}}");
                         }))
                 .build();
     }
