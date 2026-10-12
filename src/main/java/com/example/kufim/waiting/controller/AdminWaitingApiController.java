@@ -66,10 +66,13 @@ public class AdminWaitingApiController {
     public ApiResponse<Map<String, Object>> list(@PathVariable long boothId, @RequestParam(required = false) WaitingStatus status) {
         access.booth(boothId);
         var b = booths.findByIdAndDeletedFalse(boothId).orElseThrow(() -> new ContractException(HttpStatus.NOT_FOUND,"B001","부스를 찾을 수 없습니다."));
-        var rows = waitings.findByBoothIdAndStatusInOrderByRegisteredAtAsc(boothId,
+        var rows = waitings.findByBoothIdAndStatusInOrderByRegisteredAtAscIdAsc(boothId,
                 status == null ? List.of(WaitingStatus.values()) : List.of(status));
+        // 명단이 등록 순서이므로 앞의 WAITING 수를 세면서 내려가면 순번이 나옵니다(팀마다 다시 세지 않음).
+        var waitingSeen = new long[] {0};
         var content = rows.stream().map(w -> {
-            Map<String, Object> item = new LinkedHashMap<>(workflow.ticket(w));
+            long ahead = w.getStatus() == WaitingStatus.WAITING ? waitingSeen[0]++ : 0;
+            Map<String, Object> item = new LinkedHashMap<>(workflow.ticket(w, ahead));
             item.put("studentNumberMasked", PersonalDataMasker.studentNumber(w.getStudentNumber()));
             item.put("phoneNumberMasked", PersonalDataMasker.phoneNumber(w.getPhoneNumber()));
             item.put("elapsedMinutes", java.time.Duration.between(w.getRegisteredAt(), ApiClock.now()).toMinutes());

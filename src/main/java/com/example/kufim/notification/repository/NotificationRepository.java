@@ -22,4 +22,5 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
     @Query("select count(n) from Notification n left join n.notice notice where ((n.type = com.example.kufim.notification.entity.NotificationType.NOTICE and notice.deleted = false and notice.publishedAt <= :now) or n.recipientClientToken = :token) and not exists (select r.id from NotificationRead r where r.notification = n and r.clientToken = :token)")
     long unreadCount(@Param("token") String token, @Param("now") java.time.LocalDateTime now);
     java.util.Optional<Notification> findByNoticeId(Long noticeId);
+    java.util.List<Notification> findByNoticeIdIn(java.util.Collection<Long> noticeIds);
 }

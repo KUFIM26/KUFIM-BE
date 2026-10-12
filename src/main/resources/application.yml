@@ -44,6 +44,12 @@ springdoc:
     persist-authorization: false
 
 app:
+  bootstrap-admin:
+    login: ${KUFIM_ADMIN_LOGIN:}
+    password: ${KUFIM_ADMIN_PASSWORD:}
+  rate-limit:
+    # 같은 공인 IP(캠퍼스 와이파이, 통신사 NAT) 뒤의 이용자는 이 한도를 함께 씁니다.
+    waiting-per-ip-per-minute: ${WAITING_PER_IP_PER_MINUTE:60}
   frontend:
     base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
   cors:

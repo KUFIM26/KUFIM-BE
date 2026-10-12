@@ -173,8 +173,9 @@ class ApiFoundationIntegrationTest {
         var names = jdbc.queryForList("select table_name from information_schema.tables where table_schema = 'public'", String.class);
         assertThat(names).containsAll(List.of("festival", "admin_account", "admin_booth", "stage",
                 "performance", "booth", "facility", "map_floorplan", "map_pin", "notice", "waiting",
-                "waiting_event", "sms_send_log", "audit_log", "privacy_purge_log", "notification", "notification_read"))
-                .doesNotContain("translation_cache", "stage_zone", "congestion_log", "booth_image", "map_calibration_point");
+                "waiting_event", "sms_send_log", "audit_log", "privacy_purge_log", "notification", "notification_read",
+                "stage_zone", "congestion_log"))
+                .doesNotContain("translation_cache", "booth_image", "map_calibration_point");
         assertThat(activeBooth.getCreatedAt()).isNotNull();
         assertThat(activeBooth.getUpdatedAt()).isNotNull();
     }

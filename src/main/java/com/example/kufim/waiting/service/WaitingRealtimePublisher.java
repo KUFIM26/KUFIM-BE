@@ -31,6 +31,10 @@ public class WaitingRealtimePublisher {
             messaging.convertAndSend("/topic/admin/booth/" + boothId + "/waiting", (Object) Map.of("type", "WAITING_LIST_CHANGED", "boothId", boothId));
         });
     }
+    /** 바뀐 구역 하나만 보냅니다. 1,000명에게 전체 스냅샷을 보내지 않습니다(STG-005). */
+    public void congestion(Map<String, Object> zone) {
+        afterCommit(() -> messaging.convertAndSend("/topic/congestion", (Object) zone));
+    }
     public void notice(String action, long id) {
         afterCommit(() -> messaging.convertAndSend("/topic/notice", (Object) Map.of("type", action, "noticeId", id)));
     }

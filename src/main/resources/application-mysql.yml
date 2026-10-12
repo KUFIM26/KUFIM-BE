@@ -17,6 +17,9 @@ springdoc:
     enabled: ${API_DOCS_ENABLED:false}
 
 server:
+  # 리버스 프록시(Caddy 등)의 X-Forwarded-For/Proto를 신뢰합니다. 없으면 모든 이용자가
+  # 프록시 IP 하나로 보여 IP별 요청 제한을 함께 쓰고, CSRF 쿠키의 Secure 판단도 틀어집니다.
+  forward-headers-strategy: native
   servlet:
     session:
       cookie:

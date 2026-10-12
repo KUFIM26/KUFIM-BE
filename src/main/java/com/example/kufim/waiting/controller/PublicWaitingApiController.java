@@ -10,6 +10,7 @@ import jakarta.validation.Valid;
 import java.util.List;
 import java.util.Map;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 public class PublicWaitingApiController {
     private final WaitingWorkflowService service;
     private final RequestRateLimiter limiter;
+    @Value("${app.rate-limit.waiting-per-ip-per-minute:60}") private int waitingPerIp;
 
     @GetMapping("/booths/{boothId}/waiting-status")
     public ApiResponse<Map<String, Object>> status(@PathVariable long boothId,
@@ -33,7 +35,7 @@ public class PublicWaitingApiController {
             @Valid @RequestBody WaitingCreateRequest request, HttpServletRequest http) {
         String validToken = ClientToken.require(token);
         limiter.check("waiting-token", validToken, 10, "C004");
-        limiter.check("waiting-ip", http.getRemoteAddr(), 60, "C004");
+        limiter.check("waiting-ip", http.getRemoteAddr(), waitingPerIp, "C004");
         return ResponseEntity.status(201).body(ApiResponse.ok(service.register(boothId, token, key, request)));
     }
 

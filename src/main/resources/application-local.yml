@@ -9,8 +9,3 @@ spring:
 
 server:
   address: 127.0.0.1
-
-app:
-  bootstrap-admin:
-    login: ${KUFIM_ADMIN_LOGIN:}
-    password: ${KUFIM_ADMIN_PASSWORD:}

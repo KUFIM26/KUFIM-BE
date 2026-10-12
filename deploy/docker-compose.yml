@@ -1,0 +1,87 @@
+# KUFIM 운영 구성: 서버 1대에 MySQL · Redis · 백엔드 · Caddy(프론트 + HTTPS + 프록시).
+# 사용법은 deploy/README.md를 참고하세요. 값은 같은 폴더의 .env에서 읽습니다.
+name: kufim
+
+services:
+  mysql:
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: kufim
+      MYSQL_USER: kufim
+      MYSQL_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD를 .env에 설정하세요}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD를 .env에 설정하세요}
+      TZ: Asia/Seoul
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+      - --default-time-zone=+09:00
+    volumes:
+      - mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ['CMD-SHELL', 'mysqladmin ping -h 127.0.0.1 -uroot -p"$$MYSQL_ROOT_PASSWORD" --silent']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    # 관리자 세션과 요청 제한 카운터만 둡니다. 재시작되면 관리자만 다시 로그인하면 됩니다.
+    command: ['redis-server', '--requirepass', '${REDIS_PASSWORD:?REDIS_PASSWORD를 .env에 설정하세요}']
+
+  backend:
+    build: ..
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      SPRING_PROFILES_ACTIVE: mysql
+      DB_URL: jdbc:mysql://mysql:3306/kufim?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true
+      DB_USERNAME: kufim
+      DB_PASSWORD: ${DB_PASSWORD}
+      REDIS_HOST: redis
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      FRONTEND_BASE_URL: https://${SITE_DOMAIN:?SITE_DOMAIN을 .env에 설정하세요}
+      CORS_ALLOWED_ORIGINS: https://${SITE_DOMAIN}
+      # 첫 실행에서 총괄 관리자를 만든 뒤에는 .env에서 지우고 다시 올립니다.
+      KUFIM_ADMIN_LOGIN: ${KUFIM_ADMIN_LOGIN:-}
+      KUFIM_ADMIN_PASSWORD: ${KUFIM_ADMIN_PASSWORD:-}
+      WAITING_PER_IP_PER_MINUTE: ${WAITING_PER_IP_PER_MINUTE:-300}
+      JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=60
+
+  web:
+    # 프론트(KUFIM-FE)를 API 모드로 빌드해 Caddy 이미지에 넣습니다.
+    build:
+      context: ${FE_DIR:-../../KUFIM-FE}
+      dockerfile_inline: |
+        FROM node:22-alpine AS build
+        WORKDIR /app
+        COPY package.json package-lock.json ./
+        RUN npm ci
+        COPY . .
+        ENV VITE_DATA_SOURCE=api
+        RUN npm run build
+        FROM caddy:2-alpine
+        COPY --from=build /app/dist /srv
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - '80:80'
+      - '443:443'
+      - '443:443/udp'
+    environment:
+      SITE_DOMAIN: ${SITE_DOMAIN}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+
+volumes:
+  mysql-data:
+  caddy-data:
+  caddy-config:

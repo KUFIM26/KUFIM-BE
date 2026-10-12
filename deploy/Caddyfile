@@ -1,0 +1,21 @@
+# 프론트와 API를 같은 출처로 제공합니다. 관리자 세션·XSRF 쿠키와 WebSocket이 이것에 의존합니다.
+# SITE_DOMAIN이 도메인이면 Let's Encrypt 인증서를 자동으로 받습니다(무료).
+{$SITE_DOMAIN} {
+	encode zstd gzip
+
+	@backend path /api/* /ws /ws/*
+	handle @backend {
+		# X-Forwarded-For/Proto를 붙여 보냅니다. 백엔드는 forward-headers-strategy로 이를 신뢰합니다.
+		reverse_proxy {$BACKEND_ADDRESS:backend:8080}
+	}
+
+	handle {
+		root * {$WEB_ROOT:/srv}
+		# 정적 파일이 없으면 SPA의 index.html로 보냅니다(/w/{boothCode} 같은 QR 주소 포함).
+		try_files {path} /index.html
+		file_server
+	}
+
+	@hashed path /assets/*
+	header @hashed Cache-Control "public, max-age=31536000, immutable"
+}

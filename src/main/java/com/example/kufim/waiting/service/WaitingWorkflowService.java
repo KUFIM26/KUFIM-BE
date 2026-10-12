@@ -182,8 +182,12 @@ public class WaitingWorkflowService {
     @Transactional(readOnly = true)
     public Map<String, Object> ticket(Waiting w) {
         long ahead = w.getStatus() == WaitingStatus.WAITING
-                ? waitings.findByBoothIdAndStatusInOrderByRegisteredAtAsc(w.getBooth().getId(), List.of(WaitingStatus.WAITING))
-                    .stream().takeWhile(row -> !row.getId().equals(w.getId())).count() : 0;
+                ? waitings.countAhead(w.getBooth().getId(), w.getRegisteredAt(), w.getId()) : 0;
+        return ticket(w, ahead);
+    }
+
+    /** 앞 팀 수를 이미 아는 경우(관리자 명단을 순서대로 훑을 때)에는 다시 세지 않습니다. */
+    public Map<String, Object> ticket(Waiting w, long ahead) {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("waitingId", w.getPublicId()); result.put("boothId", w.getBooth().getId()); result.put("boothName", w.getBooth().getName());
         result.put("waitingNumber", w.getWaitingNumber()); result.put("partySize", w.getPartySize()); result.put("status", w.getStatus());
