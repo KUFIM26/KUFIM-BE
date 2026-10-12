@@ -1,0 +1,2782 @@
+openapi: 3.1.0
+
+info:
+  title: KUFIM API
+  version: 0.3.0
+  summary: 건국대학교 축제 통합 정보 플랫폼 API
+  description: |
+    KUFIM (Konkuk University Festival Information Map) REST API.
+
+    본 문서는 `KUFIM_API명세서.md` v0.1을 기계 판독 가능한 형태로 옮긴 것이다.
+    구현 시 springdoc-openapi 가 생성하는 명세가 정식 문서가 되며,
+    본 파일은 그 기준안이자 프론트엔드 타입 생성 소스로 사용한다.
+
+    ## 인증
+    - 이용자 API: 인증 없음. `X-Client-Token` (익명 UUID) 헤더로 웨이팅 소유권을 판별한다.
+    - 관리자 API: `Authorization: Bearer {accessToken}`
+
+    ## 응답 봉투
+    모든 응답은 `{ success, data, error }` 구조를 따른다.
+
+    ## 개인정보
+    전화번호는 **선택 입력**이다 (TBD-01/02/03 결정, 2026-09-01).
+    입력한 이용자에게만 호출 문자를 발송하고, 미입력자는 화면 표시로만 안내한다.
+    `phoneNumber` 를 보낼 때는 `privacyConsent: true` 가 함께 있어야 한다.
+
+    ## 관리자 인증
+    Redis 기반 세션 쿠키(`KUFIMSESSION`)를 사용한다. 토큰 방식이 아니다.
+    총괄 운영자가 계정을 강제 로그아웃시키면 즉시 차단된다.
+  contact:
+    name: KUFIM 팀 (김도현 · 정근녕)
+
+servers:
+  - url: https://{domain}/api/v1
+    description: 운영 (도메인 TS-01 미정)
+    variables:
+      domain:
+        default: kufim.example.ac.kr
+  - url: http://localhost:8080/api/v1
+    description: 로컬 개발
+
+tags:
+  - name: festival
+    description: 축제 기본 정보
+  - name: program
+    description: 공연 · 라인업
+  - name: booth
+    description: 부스 · 편의시설
+  - name: stage
+    description: 무대 · 혼잡도
+  - name: waiting
+    description: 스마트 웨이팅
+  - name: map
+    description: 축제 지도
+  - name: notice
+    description: 공지
+  - name: admin-auth
+    description: 관리자 인증
+  - name: admin-account
+    description: 관리자 계정 관리
+  - name: admin-stage
+    description: 무대 · 구역 · 혼잡도 관리
+  - name: admin-waiting
+    description: 웨이팅 운영
+  - name: admin-content
+    description: 콘텐츠 관리
+  - name: admin-qr
+    description: QR 관리
+  - name: admin-notice
+    description: 공지 관리
+  - name: admin-map
+    description: 지도 관리
+  - name: admin-i18n
+    description: 번역 관리
+  - name: admin-analytics
+    description: 대시보드 · 분석
+  - name: admin-privacy
+    description: 개인정보
+
+security: []
+
+paths:
+
+  # ==================================================== 이용자: 축제/프로그램
+  /festival:
+    get:
+      tags: [festival]
+      summary: 축제 기본 정보
+      description: 'F-PRG-01 · 화면 U-01'
+      parameters: [{ $ref: '#/components/parameters/ClientToken' }, { $ref: '#/components/parameters/AcceptLanguage' }]
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Festival' }
+
+  /performances:
+    get:
+      tags: [program]
+      summary: 타임테이블 · 라인업 조회
+      description: 'F-PRG-02, F-PRG-03 · 화면 U-02, U-03'
+      parameters:
+        - { $ref: '#/components/parameters/ClientToken' }
+        - { $ref: '#/components/parameters/AcceptLanguage' }
+        - name: date
+          in: query
+          schema: { type: string, format: date }
+          description: 특정 일자 필터
+        - name: stageId
+          in: query
+          schema: { type: integer, format: int64 }
+        - name: type
+          in: query
+          schema: { $ref: '#/components/schemas/PerformanceType' }
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Performance' }
+
+  /performances/now:
+    get:
+      tags: [program]
+      summary: 현재 · 다음 공연
+      description: 'F-PRG-04 · 화면 U-01'
+      parameters: [{ $ref: '#/components/parameters/ClientToken' }, { $ref: '#/components/parameters/AcceptLanguage' }]
+      responses:
+        '200':
+          description: 성공. 해당 공연이 없으면 필드는 null
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/PerformanceNow' }
+
+  /performances/{performanceId}:
+    get:
+      tags: [program]
+      summary: 공연 상세
+      description: 'F-PRG-05 · 화면 U-04'
+      parameters:
+        - { $ref: '#/components/parameters/ClientToken' }
+        - { $ref: '#/components/parameters/AcceptLanguage' }
+        - name: performanceId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Performance' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ==================================================== 이용자: 부스/시설
+  /booths:
+    get:
+      tags: [booth]
+      summary: 부스 목록
+      description: 'F-PRG-06 · 화면 U-05. 건수가 수백 건 이내이므로 페이지네이션 없이 전량 반환한다.'
+      parameters:
+        - { $ref: '#/components/parameters/ClientToken' }
+        - { $ref: '#/components/parameters/AcceptLanguage' }
+        - name: category
+          in: query
+          description: 복수 지정 가능
+          schema:
+            type: array
+            items: { $ref: '#/components/schemas/BoothCategory' }
+        - name: keyword
+          in: query
+          schema: { type: string }
+        - name: waitingOnly
+          in: query
+          schema: { type: boolean }
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Booth' }
+
+  /booths/{boothId}:
+    get:
+      tags: [booth]
+      summary: 부스 상세
+      description: 'F-PRG-07 · 화면 U-06'
+      parameters:
+        - { $ref: '#/components/parameters/ClientToken' }
+        - { $ref: '#/components/parameters/AcceptLanguage' }
+        - { $ref: '#/components/parameters/BoothId' }
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/BoothDetail' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /booths/code/{boothCode}:
+    get:
+      tags: [booth, waiting]
+      summary: QR 코드로 부스 식별
+      description: |
+        F-WAI-03 · 화면 U-07.
+        QR 인코딩 URL 은 `https://{domain}/w/{boothCode}` 이며 프론트엔드가 이 API로 부스를 해석한다.
+      parameters:
+        - { $ref: '#/components/parameters/ClientToken' }
+        - { $ref: '#/components/parameters/AcceptLanguage' }
+        - name: boothCode
+          in: path
+          required: true
+          schema: { type: string, minLength: 12, maxLength: 12 }
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/BoothByCode' }
+        '404':
+          description: 유효하지 않은 QR 코드 (B002)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /facilities:
+    get:
+      tags: [booth]
+      summary: 편의시설 목록
+      description: 화면 U-10
+      parameters:
+        - { $ref: '#/components/parameters/ClientToken' }
+        - { $ref: '#/components/parameters/AcceptLanguage' }
+        - name: type
+          in: query
+          schema:
+            type: array
+            items: { $ref: '#/components/schemas/FacilityType' }
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Facility' }
+
+  # ==================================================== 이용자: 무대/혼잡도
+  /stages:
+    get:
+      tags: [stage]
+      summary: 무대 및 구역별 혼잡도
+      description: |
+        F-STG-03 · 화면 U-01, U-11.
+        서버는 원본 값을 반환하며, `serverTime - updatedAt > 15분` 인 경우 클라이언트가 UNKNOWN 으로 표시한다 (F-STG-07).
+      parameters: [{ $ref: '#/components/parameters/ClientToken' }, { $ref: '#/components/parameters/AcceptLanguage' }]
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/StagesResponse' }
+
+  /stages/{stageId}/congestion/history:
+    get:
+      tags: [stage]
+      summary: 혼잡도 추이
+      description: 'F-STG-09 (우선순위 C) · 화면 U-11'
+      parameters:
+        - { $ref: '#/components/parameters/ClientToken' }
+        - name: stageId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+        - name: zoneId
+          in: query
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/CongestionPoint' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ==================================================== 이용자: 웨이팅
+  /booths/{boothId}/waiting-status:
+    get:
+      tags: [waiting]
+      summary: 부스 대기 현황
+      description: 'F-WAI-04 · 화면 U-06, U-07'
+      parameters:
+        - { $ref: '#/components/parameters/ClientToken' }
+        - { $ref: '#/components/parameters/BoothId' }
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/WaitingStatus' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /booths/{boothId}/waitings:
+    post:
+      tags: [waiting]
+      summary: 웨이팅 등록
+      description: |
+        F-WAI-05, F-WAI-06 · 화면 U-07.
+        중복 등록 차단은 Redis `SETNX` 로 1차 수행하고 등록 트랜잭션 내에서 재확인한다.
+      parameters:
+        - { $ref: '#/components/parameters/ClientToken' }
+        - { $ref: '#/components/parameters/BoothId' }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/WaitingCreateRequest' }
+      responses:
+        '201':
+          description: 등록 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/WaitingTicket' }
+        '400':
+          description: 요청 값 검증 실패 (C001) 또는 전화번호 입력 시 동의 누락 (C002)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '409':
+          description: 중복 등록 (W001) · 접수 마감 (W002) · 웨이팅 미사용 부스 (W005)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '429': { $ref: '#/components/responses/TooManyRequests' }
+
+  /waitings/me:
+    get:
+      tags: [waiting]
+      summary: 내 대기표 목록
+      description: 'F-WAI-12, F-WAI-19 · 화면 U-09. X-Client-Token 기준 활성 대기표 전체.'
+      parameters: [{ $ref: '#/components/parameters/ClientToken' }]
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/WaitingDetail' }
+        '400':
+          description: X-Client-Token 헤더 누락 (C003)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /waitings/{waitingId}:
+    get:
+      tags: [waiting]
+      summary: 대기표 단건 조회
+      description: 'F-WAI-12 · 화면 U-08'
+      parameters:
+        - { $ref: '#/components/parameters/ClientToken' }
+        - { $ref: '#/components/parameters/WaitingId' }
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/WaitingDetail' }
+        '403':
+          description: 본인 대기표가 아님 (W003)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '404':
+          description: 존재하지 않는 대기표 (W004)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    delete:
+      tags: [waiting]
+      summary: 웨이팅 취소
+      description: 'F-WAI-11 · 화면 U-08'
+      parameters:
+        - { $ref: '#/components/parameters/ClientToken' }
+        - { $ref: '#/components/parameters/WaitingId' }
+      responses:
+        '204': { description: 취소 완료 }
+        '403':
+          description: 본인 대기표가 아님 (W003)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '409':
+          description: 이미 종료된 대기표 (W006)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  # ==================================================== 이용자: 지도
+  /map:
+    get:
+      tags: [map]
+      summary: 도면 및 좌표 보정 정보
+      description: |
+        F-MAP-01, F-MAP-06 · 화면 U-10.
+        클라이언트는 `calibration` 3점으로 어파인 변환 행렬을 계산해 GPS → 도면 좌표를 변환한다.
+      parameters: [{ $ref: '#/components/parameters/ClientToken' }]
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/MapResponse' }
+        '404':
+          description: 도면 미등록 (M003)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /map/pins:
+    get:
+      tags: [map]
+      summary: 지도 핀 목록
+      description: 'F-MAP-03, F-MAP-04 · 화면 U-10'
+      parameters:
+        - { $ref: '#/components/parameters/ClientToken' }
+        - { $ref: '#/components/parameters/AcceptLanguage' }
+        - name: targetType
+          in: query
+          schema: { $ref: '#/components/schemas/PinTargetType' }
+        - name: category
+          in: query
+          description: 부스 카테고리 또는 시설 유형
+          schema: { type: string }
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/MapPin' }
+
+  # ==================================================== 이용자: 공지
+  /notices:
+    get:
+      tags: [notice]
+      summary: 공지 목록
+      description: 'F-COM-07 · 화면 U-12'
+      parameters:
+        - { $ref: '#/components/parameters/ClientToken' }
+        - { $ref: '#/components/parameters/AcceptLanguage' }
+        - name: urgentOnly
+          in: query
+          description: true 면 활성 긴급 공지만 (배너용)
+          schema: { type: boolean, default: false }
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Notice' }
+
+  /notices/{noticeId}:
+    get:
+      tags: [notice]
+      summary: 공지 상세
+      parameters:
+        - { $ref: '#/components/parameters/ClientToken' }
+        - { $ref: '#/components/parameters/AcceptLanguage' }
+        - name: noticeId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Notice' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ==================================================== 관리자: 인증
+  /admin/auth/login:
+    post:
+      tags: [admin-auth]
+      summary: 관리자 로그인
+      description: 'F-ADM-01'
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: 로그인 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/LoginResponse' }
+        '401':
+          description: 아이디 또는 비밀번호 불일치 (A001)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '429':
+          description: 로그인 시도 초과 (A002)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /admin/auth/logout:
+    post:
+      tags: [admin-auth]
+      summary: 로그아웃 (Refresh 토큰 무효화)
+      description: 'F-ADM-02'
+      security: [{ sessionAuth: [] }]
+      responses:
+        '204': { description: 로그아웃 완료 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  /admin/auth/me:
+    get:
+      tags: [admin-auth]
+      summary: 내 계정 · 권한 · 담당 부스
+      description: 'F-ADM-03'
+      security: [{ sessionAuth: [] }]
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/AdminAccount' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+
+  # ==================================================== 관리자: 계정
+  /admin/accounts:
+    get:
+      tags: [admin-account]
+      summary: 계정 목록
+      description: 'F-ADM-04 · SUPER_ADMIN'
+      security: [{ sessionAuth: [] }]
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/AdminAccount' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [admin-account]
+      summary: 계정 발급
+      description: 'F-ADM-04 · SUPER_ADMIN. 초기 비밀번호는 응답에서 1회만 반환한다.'
+      security: [{ sessionAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/AccountCreateRequest' }
+      responses:
+        '201':
+          description: 발급 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/AccountCreateResponse' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/accounts/{accountId}:
+    parameters:
+      - { $ref: '#/components/parameters/AccountId' }
+    patch:
+      tags: [admin-account]
+      summary: 권한 · 담당 부스 변경
+      security: [{ sessionAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                role: { $ref: '#/components/schemas/AdminRole' }
+                managedBoothIds:
+                  type: array
+                  items: { type: integer, format: int64 }
+                active: { type: boolean }
+      responses:
+        '200':
+          description: 수정 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/AdminAccount' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [admin-account]
+      summary: 계정 비활성화 (논리 삭제)
+      security: [{ sessionAuth: [] }]
+      responses:
+        '204': { description: 비활성화 완료 }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/accounts/{accountId}/reset-password:
+    post:
+      tags: [admin-account]
+      summary: 비밀번호 초기화
+      security: [{ sessionAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/AccountId' }]
+      responses:
+        '200':
+          description: 초기화 완료. 새 비밀번호를 1회만 반환한다.
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          temporaryPassword: { type: string }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ==================================================== 관리자: 무대/구역/혼잡도
+  /admin/accounts/{accountId}/force-logout:
+    post:
+      tags: [admin-account]
+      summary: 계정 강제 로그아웃
+      description: |
+        F-ADM-02. 해당 계정의 모든 세션을 Redis 에서 즉시 삭제한다.
+        축제 당일 태블릿 분실이나 교대 상황에 사용한다. 세션 방식의 핵심 이점이다.
+      security: [{ sessionAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/AccountId' }]
+      responses:
+        '204': { description: 모든 세션 종료 완료 }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/waitings/{waitingId}/resend-sms:
+    post:
+      tags: [admin-waiting]
+      summary: 호출 문자 재발송
+      description: |
+        F-WAI-23. 문자가 도달하지 않은 경우 운영자가 재발송한다.
+        이용자는 이 기능을 호출할 수 없다. 재발송도 일일 한도에 포함된다.
+      security: [{ sessionAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/WaitingId' }]
+      responses:
+        '200':
+          description: 재발송 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/SmsSendResult' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: 전화번호 미입력 (W010)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '429':
+          description: 일일 발송 한도 초과 (W011)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /admin/sms/usage:
+    get:
+      tags: [admin-analytics]
+      summary: 문자 발송 현황 및 누적 비용
+      description: |
+        F-WAI-24. 발송 비용을 팀이 자비 부담하므로 실시간 소진 확인이 필요하다 (NFR-S-008).
+      security: [{ sessionAuth: [] }]
+      parameters:
+        - name: date
+          in: query
+          schema: { type: string, format: date }
+          description: 특정 일자. 생략 시 전체 누적
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/SmsUsage' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/stages:
+    get:
+      tags: [admin-stage]
+      summary: 무대 · 구역 목록
+      description: 'F-STG-01'
+      security: [{ sessionAuth: [] }]
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/StagesResponse' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [admin-stage]
+      summary: 무대 등록
+      security: [{ sessionAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/StageUpsertRequest' }
+      responses:
+        '201':
+          description: 등록 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Stage' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/stages/{stageId}:
+    parameters: [{ $ref: '#/components/parameters/StageId' }]
+    patch:
+      tags: [admin-stage]
+      summary: 무대 수정
+      security: [{ sessionAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/StageUpsertRequest' }
+      responses:
+        '200':
+          description: 수정 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Stage' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [admin-stage]
+      summary: 무대 삭제
+      security: [{ sessionAuth: [] }]
+      responses:
+        '204': { description: 삭제 완료 }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/stages/{stageId}/entry-status:
+    patch:
+      tags: [admin-stage]
+      summary: 입장 통제 상태 전환
+      description: 'F-STG-06'
+      security: [{ sessionAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/StageId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [entryStatus]
+              properties:
+                entryStatus: { $ref: '#/components/schemas/EntryStatus' }
+      responses:
+        '200':
+          description: 전환 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Stage' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/stages/{stageId}/zones:
+    post:
+      tags: [admin-stage]
+      summary: 구역 등록
+      description: 'F-STG-01'
+      security: [{ sessionAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/StageId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ZoneUpsertRequest' }
+      responses:
+        '201':
+          description: 등록 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/StageZone' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/zones/{zoneId}:
+    parameters: [{ $ref: '#/components/parameters/ZoneId' }]
+    patch:
+      tags: [admin-stage]
+      summary: 구역 수정 · 순서 변경
+      security: [{ sessionAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/ZoneUpsertRequest' }
+      responses:
+        '200':
+          description: 수정 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/StageZone' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [admin-stage]
+      summary: 구역 삭제
+      security: [{ sessionAuth: [] }]
+      responses:
+        '204': { description: 삭제 완료 }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/zones/{zoneId}/congestion:
+    post:
+      tags: [admin-stage]
+      summary: 혼잡도 입력
+      description: |
+        F-STG-02 · 화면 A-04.
+        저장 즉시 `/topic/congestion` 으로 브로드캐스트한다 (F-STG-05).
+      security: [{ sessionAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/ZoneId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/CongestionCreateRequest' }
+      responses:
+        '201':
+          description: 입력 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/CongestionLog' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ==================================================== 관리자: 웨이팅 운영
+  /admin/booths/{boothId}/waitings:
+    get:
+      tags: [admin-waiting]
+      summary: 부스 대기 목록
+      description: 'F-WAI-13 · 화면 A-03. SUPER_ADMIN 또는 담당 BOOTH_ADMIN.'
+      security: [{ sessionAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/BoothId' }
+        - name: status
+          in: query
+          schema:
+            type: array
+            items: { $ref: '#/components/schemas/WaitingStatusEnum' }
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/AdminWaitingList' }
+        '403':
+          description: 담당하지 않는 부스 (A003)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /admin/booths/{boothId}/waitings/call-next:
+    post:
+      tags: [admin-waiting]
+      summary: 다음 팀 호출
+      description: |
+        F-WAI-13.
+        Redis `ZPOPMIN` 으로 가장 오래 기다린 팀을 꺼낸다. 동시 호출 시에도 한 팀만 나간다.
+      security: [{ sessionAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/BoothId' }]
+      responses:
+        '200':
+          description: 호출 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/AdminWaitingItem' }
+        '403':
+          description: 담당하지 않는 부스 (A003)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '409':
+          description: 호출할 대기 팀 없음 (W009)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /admin/waitings/{waitingId}/call:
+    post:
+      tags: [admin-waiting]
+      summary: 특정 팀 호출
+      description: 'F-WAI-13'
+      security: [{ sessionAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/WaitingId' }]
+      responses:
+        '200':
+          description: 호출 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/AdminWaitingItem' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: WAITING 상태가 아님 (W007)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /admin/waitings/{waitingId}/enter:
+    post:
+      tags: [admin-waiting]
+      summary: 입장 완료 처리
+      description: 'F-WAI-14'
+      security: [{ sessionAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/WaitingId' }]
+      responses:
+        '200':
+          description: 처리 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/AdminWaitingItem' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: CALLED 상태가 아님 (W008)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /admin/waitings/{waitingId}/no-show:
+    post:
+      tags: [admin-waiting]
+      summary: 노쇼 확정
+      description: |
+        F-WAI-15.
+        호출 후 5분 경과 시 노쇼 후보로 표시되지만 자동 전이하지 않는다. 확정은 운영자가 한다.
+      security: [{ sessionAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/WaitingId' }]
+      responses:
+        '200':
+          description: 처리 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/AdminWaitingItem' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '409':
+          description: CALLED 상태가 아님 (W008)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  /admin/booths/{boothId}/waiting-config:
+    patch:
+      tags: [admin-waiting]
+      summary: 접수 중단 · 재개
+      description: 'F-WAI-16'
+      security: [{ sessionAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/BoothId' }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [acceptingStatus]
+              properties:
+                acceptingStatus:
+                  type: string
+                  enum: [OPEN, CLOSED]
+      responses:
+        '200':
+          description: 변경 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/WaitingStatus' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ==================================================== 관리자: 콘텐츠
+  /admin/performances:
+    get:
+      tags: [admin-content]
+      summary: 공연 목록
+      security: [{ sessionAuth: [] }]
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Performance' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [admin-content]
+      summary: 공연 등록
+      description: 'F-PRG-08'
+      security: [{ sessionAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PerformanceUpsertRequest' }
+      responses:
+        '201':
+          description: 등록 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Performance' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/performances/{performanceId}:
+    parameters:
+      - name: performanceId
+        in: path
+        required: true
+        schema: { type: integer, format: int64 }
+    patch:
+      tags: [admin-content]
+      summary: 공연 수정
+      description: 'start_at 변경 시 scheduleChanged 가 true 로 설정된다 (F-PRG-11).'
+      security: [{ sessionAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/PerformanceUpsertRequest' }
+      responses:
+        '200':
+          description: 수정 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Performance' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [admin-content]
+      summary: 공연 삭제 (논리 삭제)
+      security: [{ sessionAuth: [] }]
+      responses:
+        '204': { description: 삭제 완료 }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/booths:
+    get:
+      tags: [admin-content]
+      summary: 부스 목록 (관리자)
+      security: [{ sessionAuth: [] }]
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/BoothDetail' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [admin-content]
+      summary: 부스 등록
+      description: 'F-PRG-08'
+      security: [{ sessionAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BoothUpsertRequest' }
+      responses:
+        '201':
+          description: 등록 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/BoothDetail' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/booths/{boothId}:
+    parameters: [{ $ref: '#/components/parameters/BoothId' }]
+    patch:
+      tags: [admin-content]
+      summary: 부스 수정
+      security: [{ sessionAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/BoothUpsertRequest' }
+      responses:
+        '200':
+          description: 수정 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/BoothDetail' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [admin-content]
+      summary: 부스 삭제 (논리 삭제)
+      security: [{ sessionAuth: [] }]
+      responses:
+        '204': { description: 삭제 완료 }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/facilities:
+    get:
+      tags: [admin-content]
+      summary: 편의시설 목록 (관리자)
+      security: [{ sessionAuth: [] }]
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Facility' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [admin-content]
+      summary: 편의시설 등록
+      security: [{ sessionAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FacilityUpsertRequest' }
+      responses:
+        '201':
+          description: 등록 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Facility' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/facilities/{facilityId}:
+    parameters:
+      - name: facilityId
+        in: path
+        required: true
+        schema: { type: integer, format: int64 }
+    patch:
+      tags: [admin-content]
+      summary: 편의시설 수정
+      security: [{ sessionAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/FacilityUpsertRequest' }
+      responses:
+        '200':
+          description: 수정 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Facility' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [admin-content]
+      summary: 편의시설 삭제 (논리 삭제)
+      security: [{ sessionAuth: [] }]
+      responses:
+        '204': { description: 삭제 완료 }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/uploads/images:
+    post:
+      tags: [admin-content]
+      summary: 이미지 업로드
+      description: 'F-PRG-09. S3 업로드 후 공개 URL 을 반환한다.'
+      security: [{ sessionAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: 업로드 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          imageUrl: { type: string, format: uri }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ==================================================== 관리자: QR
+  /admin/booths/{boothId}/qr:
+    parameters: [{ $ref: '#/components/parameters/BoothId' }]
+    post:
+      tags: [admin-qr]
+      summary: QR 발급 · 재발급
+      description: |
+        F-WAI-01.
+        재발급 시 기존 `boothCode` 는 즉시 무효화되고 이전 QR 은 404 B002 로 응답한다.
+      security: [{ sessionAuth: [] }]
+      responses:
+        '201':
+          description: 발급 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          boothId: { type: integer, format: int64 }
+                          boothCode: { type: string }
+                          qrUrl: { type: string, format: uri }
+                          issuedAt: { type: string, format: date-time }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    get:
+      tags: [admin-qr]
+      summary: QR 이미지 다운로드
+      description: 'F-WAI-02'
+      security: [{ sessionAuth: [] }]
+      responses:
+        '200':
+          description: PNG 이미지
+          content:
+            image/png:
+              schema: { type: string, format: binary }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/qr/export:
+    get:
+      tags: [admin-qr]
+      summary: 전체 부스 QR 인쇄용 일괄 다운로드
+      description: 'F-WAI-02'
+      security: [{ sessionAuth: [] }]
+      responses:
+        '200':
+          description: PDF
+          content:
+            application/pdf:
+              schema: { type: string, format: binary }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ==================================================== 관리자: 공지
+  /admin/notices:
+    get:
+      tags: [admin-notice]
+      summary: 공지 목록 (관리자)
+      security: [{ sessionAuth: [] }]
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Notice' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    post:
+      tags: [admin-notice]
+      summary: 공지 작성
+      description: 'F-ADM-06'
+      security: [{ sessionAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NoticeUpsertRequest' }
+      responses:
+        '201':
+          description: 작성 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Notice' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/notices/{noticeId}:
+    parameters: [{ $ref: '#/components/parameters/NoticeId' }]
+    patch:
+      tags: [admin-notice]
+      summary: 공지 수정
+      security: [{ sessionAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/NoticeUpsertRequest' }
+      responses:
+        '200':
+          description: 수정 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Notice' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+    delete:
+      tags: [admin-notice]
+      summary: 공지 삭제
+      security: [{ sessionAuth: [] }]
+      responses:
+        '204': { description: 삭제 완료 }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/notices/{noticeId}/publish:
+    post:
+      tags: [admin-notice]
+      summary: 공지 발행
+      description: |
+        F-ADM-06.
+        발행 시 `/topic/notice` 브로드캐스트 + 영문 번역 우선 처리 (F-I18N-09).
+      security: [{ sessionAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/NoticeId' }]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                urgent: { type: boolean, default: false }
+      responses:
+        '200':
+          description: 발행 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Notice' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/notices/{noticeId}/unpublish:
+    post:
+      tags: [admin-notice]
+      summary: 공지 게시 해제
+      security: [{ sessionAuth: [] }]
+      parameters: [{ $ref: '#/components/parameters/NoticeId' }]
+      responses:
+        '200':
+          description: 해제 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Notice' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ==================================================== 관리자: 지도
+  /admin/map/floorplan:
+    put:
+      tags: [admin-map]
+      summary: 도면 업로드 · 교체
+      description: |
+        F-MAP-11.
+        교체 시 `version` 이 증가한다. 기존 핀 좌표가 어긋날 수 있으므로 좌표 재검수가 필요하다.
+      security: [{ sessionAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, width, height]
+              properties:
+                file: { type: string, format: binary }
+                width: { type: integer }
+                height: { type: integer }
+      responses:
+        '200':
+          description: 교체 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Floorplan' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/map/calibration:
+    put:
+      tags: [admin-map]
+      summary: 좌표 보정 기준점 등록
+      description: |
+        F-MAP-07.
+        최소 3점 필요하며 세 점이 일직선이면 변환 행렬이 특이행렬이 되어 거부된다.
+      security: [{ sessionAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [points]
+              properties:
+                points:
+                  type: array
+                  minItems: 3
+                  items: { $ref: '#/components/schemas/CalibrationPoint' }
+      responses:
+        '200':
+          description: 등록 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/CalibrationPoint' }
+        '400':
+          description: 기준점 3개 미만 (M001) 또는 일직선 (M002)
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/pins:
+    get:
+      tags: [admin-map]
+      summary: 핀 목록 (관리자)
+      security: [{ sessionAuth: [] }]
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/MapPin' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+    put:
+      tags: [admin-map]
+      summary: 핀 좌표 일괄 저장
+      description: 'F-MAP-12. 지도 편집 화면(A-10)에서 전체 핀을 한 번에 저장한다.'
+      security: [{ sessionAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pins]
+              properties:
+                pins:
+                  type: array
+                  items: { $ref: '#/components/schemas/MapPinUpsert' }
+      responses:
+        '200':
+          description: 저장 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/MapPin' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/pins/{pinId}:
+    delete:
+      tags: [admin-map]
+      summary: 핀 삭제
+      security: [{ sessionAuth: [] }]
+      parameters:
+        - name: pinId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      responses:
+        '204': { description: 삭제 완료 }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  # ==================================================== 관리자: 번역
+  /admin/translations:
+    get:
+      tags: [admin-i18n]
+      summary: 번역 목록
+      description: 'F-I18N-07 (2단계)'
+      security: [{ sessionAuth: [] }]
+      parameters:
+        - name: status
+          in: query
+          schema: { $ref: '#/components/schemas/TranslationStatus' }
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Translation' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/translations/{translationId}:
+    put:
+      tags: [admin-i18n]
+      summary: 번역문 수동 수정
+      description: |
+        F-I18N-07.
+        수동 수정된 항목은 `manualOverride = true` 가 되어 이후 자동 재번역 대상에서 제외된다.
+      security: [{ sessionAuth: [] }]
+      parameters:
+        - name: translationId
+          in: path
+          required: true
+          schema: { type: integer, format: int64 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [translatedText]
+              properties:
+                translatedText: { type: string }
+      responses:
+        '200':
+          description: 수정 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Translation' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+
+  /admin/translations/retranslate:
+    post:
+      tags: [admin-i18n]
+      summary: 선택 항목 재번역
+      security: [{ sessionAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [translationIds]
+              properties:
+                translationIds:
+                  type: array
+                  items: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 재번역 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: '#/components/schemas/Translation' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '503':
+          description: 번역 서비스 연결 실패 (I001). 원문이 유지된다.
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  # ==================================================== 관리자: 대시보드/분석
+  /admin/dashboard:
+    get:
+      tags: [admin-analytics]
+      summary: 실시간 현황 요약
+      description: 'F-ADM-05 · 화면 A-02'
+      security: [{ sessionAuth: [] }]
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/Dashboard' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/analytics/waitings.csv:
+    get:
+      tags: [admin-analytics]
+      summary: 웨이팅 원본 데이터 CSV
+      description: 'F-ADM-08. 대기 시간 단축 효과 정량화의 원자료.'
+      security: [{ sessionAuth: [] }]
+      parameters:
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+      responses:
+        '200':
+          description: CSV
+          content:
+            text/csv:
+              schema: { type: string }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/analytics/congestion.csv:
+    get:
+      tags: [admin-analytics]
+      summary: 혼잡도 이력 CSV
+      security: [{ sessionAuth: [] }]
+      parameters:
+        - name: from
+          in: query
+          schema: { type: string, format: date-time }
+        - name: to
+          in: query
+          schema: { type: string, format: date-time }
+      responses:
+        '200':
+          description: CSV
+          content:
+            text/csv:
+              schema: { type: string }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  /admin/audit-logs:
+    get:
+      tags: [admin-analytics]
+      summary: 조작 이력 조회
+      description: 'F-ADM-07 · 화면 A-15. 페이지네이션 적용.'
+      security: [{ sessionAuth: [] }]
+      parameters:
+        - { $ref: '#/components/parameters/Page' }
+        - { $ref: '#/components/parameters/Size' }
+        - name: action
+          in: query
+          schema: { type: string }
+        - name: accountId
+          in: query
+          schema: { type: integer, format: int64 }
+      responses:
+        '200':
+          description: 성공
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data: { $ref: '#/components/schemas/AuditLogPage' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+  # ==================================================== 관리자: 개인정보
+  /admin/privacy/purge:
+    post:
+      tags: [admin-privacy]
+      summary: 접속 로그·익명 토큰 파기
+      description: |
+        F-ADM-10 (NFR-S-006).
+        이용자 개인정보를 수집하지 않으므로 파기 대상은 **접속 로그의 IP 주소와 익명 토큰**이다.
+        확인 문구를 요구하며, 실행 결과를 감사 로그와 `privacy_purge_log` 에 기록한다.
+        웨이팅 통계는 익명 토큰을 제거한 상태로 유지된다.
+      security: [{ sessionAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targetType, confirmation]
+              properties:
+                targetType:
+                  type: string
+                  enum: [ACCESS_LOG, CLIENT_TOKEN]
+                  description: 파기 대상
+                confirmation:
+                  type: string
+                  description: 확인 문구. 정확히 일치해야 실행된다.
+                  const: 데이터를 파기합니다
+                note: { type: string }
+      responses:
+        '200':
+          description: 파기 완료
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          targetCount: { type: integer }
+                          executedAt: { type: string, format: date-time }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+
+# =====================================================================
+components:
+
+  securitySchemes:
+    sessionAuth:
+      type: apiKey
+      in: cookie
+      name: KUFIMSESSION
+      description: |
+        관리자 세션 쿠키. 로그인 응답의 Set-Cookie 로 발급된다.
+        Redis 에 저장되어 서버 간 공유되며, 강제 로그아웃 시 즉시 무효화된다.
+        속성: HttpOnly; Secure; SameSite=Lax; 만료 8시간
+
+  parameters:
+    ClientToken:
+      name: X-Client-Token
+      in: header
+      required: true
+      description: 익명 토큰 (UUID v4). 최초 접속 시 클라이언트가 생성해 저장한다 (F-COM-01).
+      schema: { type: string, format: uuid }
+    AcceptLanguage:
+      name: Accept-Language
+      in: header
+      required: false
+      description: 콘텐츠 번역 언어 (F-I18N-04)
+      schema:
+        type: string
+        enum: [ko, en]
+        default: ko
+    BoothId:
+      name: boothId
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    StageId:
+      name: stageId
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    ZoneId:
+      name: zoneId
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    NoticeId:
+      name: noticeId
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    AccountId:
+      name: accountId
+      in: path
+      required: true
+      schema: { type: integer, format: int64 }
+    WaitingId:
+      name: waitingId
+      in: path
+      required: true
+      description: 웨이팅 public_id (추측 불가 UUID). WebSocket 개인 토픽 키로도 사용된다.
+      schema: { type: string, format: uuid }
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 0, default: 0 }
+    Size:
+      name: size
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 20 }
+
+  responses:
+    BadRequest:
+      description: 요청 값 검증 실패 (C001)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Unauthorized:
+      description: 미인증 또는 토큰 만료 (A004 · A005)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    Forbidden:
+      description: 권한 없음 (A003)
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    NotFound:
+      description: 리소스를 찾을 수 없음
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+    TooManyRequests:
+      description: 요청 빈도 제한 초과 (C004). Retry-After 헤더를 함께 반환한다.
+      headers:
+        Retry-After:
+          schema: { type: integer }
+          description: 재시도까지 대기할 초
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorEnvelope' }
+
+  schemas:
+
+    # ---------------------------------------------------- 공통 봉투
+    Envelope:
+      type: object
+      required: [success]
+      properties:
+        success: { type: boolean, const: true }
+        error:
+          type: 'null'
+      description: 성공 응답의 공통 구조. 하위 스키마가 `data` 를 정의한다.
+
+    ErrorEnvelope:
+      type: object
+      required: [success, data, error]
+      properties:
+        success: { type: boolean, const: false }
+        data:
+          type: 'null'
+        error: { $ref: '#/components/schemas/ErrorObject' }
+
+    ErrorObject:
+      type: object
+      required: [code, message]
+      properties:
+        code:
+          type: string
+          pattern: '^[CWBSMAI][0-9]{3}$'
+          examples: ['W001', 'M002']
+        message: { type: string }
+        field:
+          type: [string, 'null']
+        violations:
+          type: array
+          items:
+            type: object
+            properties:
+              field: { type: string }
+              message: { type: string }
+
+    # ---------------------------------------------------- enum
+    FestivalStatus:
+      type: string
+      enum: [BEFORE, ONGOING, ENDED]
+    EntryStatus:
+      type: string
+      enum: [OPEN, RESTRICTED]
+      description: OPEN=입장 가능, RESTRICTED=입장 통제 중
+    CongestionLevel:
+      type: string
+      enum: [SMOOTH, NORMAL, CROWDED, VERY_CROWDED]
+      description: |
+        UNKNOWN 은 서버가 반환하지 않는다.
+        클라이언트가 `serverTime - updatedAt > 15분` 일 때 자체 판정한다 (F-STG-07).
+    PerformanceType:
+      type: string
+      enum: [GUEST, STUDENT, EVENT]
+    BoothCategory:
+      type: string
+      enum: [EXPERIENCE, FOOD, FOOD_TRUCK, PROMOTION, PERFORMANCE]
+    FacilityType:
+      type: string
+      enum: [RESTROOM, CONTROL_ROOM, MEDICAL, SMOKING_AREA, TRASH, ENTRANCE]
+    AcceptingStatus:
+      type: string
+      enum: [OPEN, CLOSED, DISABLED]
+      description: OPEN=접수 중, CLOSED=운영자 마감, DISABLED=웨이팅 미사용 부스
+    WaitingStatusEnum:
+      type: string
+      enum: [WAITING, CALLED, ENTERED, CANCELED, NO_SHOW]
+      description: 활성 상태는 WAITING · CALLED. 나머지는 종료 상태.
+    AdminRole:
+      type: string
+      enum: [SUPER_ADMIN, BOOTH_ADMIN]
+    PinTargetType:
+      type: string
+      enum: [BOOTH, FACILITY]
+    TranslationStatus:
+      type: string
+      enum: [AUTO, MANUAL, FAILED]
+
+    # ---------------------------------------------------- 축제/프로그램
+    Festival:
+      type: object
+      required: [festivalId, name, startAt, endAt, status, serverTime]
+      properties:
+        festivalId: { type: integer, format: int64 }
+        name: { type: string }
+        description: { type: [string, 'null'] }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        status: { $ref: '#/components/schemas/FestivalStatus' }
+        serverTime: { type: string, format: date-time }
+
+    Performance:
+      type: object
+      required: [performanceId, title, type, startAt, endAt]
+      properties:
+        performanceId: { type: integer, format: int64 }
+        title: { type: string }
+        artist: { type: [string, 'null'] }
+        type: { $ref: '#/components/schemas/PerformanceType' }
+        description: { type: [string, 'null'] }
+        stageId: { type: [integer, 'null'], format: int64 }
+        stageName: { type: [string, 'null'] }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        imageUrl: { type: [string, 'null'], format: uri }
+        scheduleChanged: { type: boolean, default: false }
+
+    PerformanceNow:
+      type: object
+      required: [serverTime]
+      properties:
+        serverTime: { type: string, format: date-time }
+        current:
+          oneOf:
+            - { $ref: '#/components/schemas/Performance' }
+            - type: 'null'
+        next:
+          oneOf:
+            - { $ref: '#/components/schemas/Performance' }
+            - type: 'null'
+
+    PerformanceUpsertRequest:
+      type: object
+      required: [title, type, startAt, endAt]
+      properties:
+        title: { type: string, maxLength: 200 }
+        artist: { type: string, maxLength: 200 }
+        type: { $ref: '#/components/schemas/PerformanceType' }
+        description: { type: string }
+        stageId: { type: integer, format: int64 }
+        startAt: { type: string, format: date-time }
+        endAt: { type: string, format: date-time }
+        imageUrl: { type: string, format: uri }
+        displayOrder: { type: integer, default: 0 }
+
+    # ---------------------------------------------------- 부스/시설
+    Booth:
+      type: object
+      required: [boothId, name, category, waitingEnabled]
+      properties:
+        boothId: { type: integer, format: int64 }
+        name: { type: string }
+        category: { $ref: '#/components/schemas/BoothCategory' }
+        operatingHours: { type: [string, 'null'] }
+        thumbnailUrl: { type: [string, 'null'], format: uri }
+        waitingEnabled: { type: boolean }
+        waitingStatus:
+          oneOf:
+            - { $ref: '#/components/schemas/WaitingStatus' }
+            - type: 'null'
+        pin:
+          oneOf:
+            - { $ref: '#/components/schemas/Point' }
+            - type: 'null'
+
+    BoothDetail:
+      allOf:
+        - { $ref: '#/components/schemas/Booth' }
+        - type: object
+          properties:
+            description: { type: [string, 'null'] }
+            noticeText: { type: [string, 'null'] }
+            images:
+              type: array
+              items: { type: string, format: uri }
+            boothCode: { type: [string, 'null'] }
+            acceptingStatus: { $ref: '#/components/schemas/AcceptingStatus' }
+
+    BoothByCode:
+      allOf:
+        - { $ref: '#/components/schemas/Booth' }
+        - type: object
+          properties:
+            myActiveWaitingId:
+              type: [string, 'null']
+              format: uuid
+              description: 존재하면 등록 대신 기존 대기표로 이동시킨다.
+
+    BoothUpsertRequest:
+      type: object
+      required: [name, category]
+      properties:
+        name: { type: string, maxLength: 100 }
+        category: { $ref: '#/components/schemas/BoothCategory' }
+        description: { type: string }
+        operatingHours: { type: string, maxLength: 100 }
+        noticeText: { type: string, maxLength: 500 }
+        thumbnailUrl: { type: string, format: uri }
+        imageUrls:
+          type: array
+          items: { type: string, format: uri }
+        waitingEnabled: { type: boolean, default: false }
+        pin: { $ref: '#/components/schemas/Point' }
+
+    Facility:
+      type: object
+      required: [facilityId, type, name]
+      properties:
+        facilityId: { type: integer, format: int64 }
+        type: { $ref: '#/components/schemas/FacilityType' }
+        name: { type: string }
+        description: { type: [string, 'null'] }
+        pin:
+          oneOf:
+            - { $ref: '#/components/schemas/Point' }
+            - type: 'null'
+
+    FacilityUpsertRequest:
+      type: object
+      required: [type, name]
+      properties:
+        type: { $ref: '#/components/schemas/FacilityType' }
+        name: { type: string, maxLength: 100 }
+        description: { type: string, maxLength: 255 }
+        pin: { $ref: '#/components/schemas/Point' }
+
+    # ---------------------------------------------------- 무대/혼잡도
+    StagesResponse:
+      type: object
+      required: [serverTime, stages]
+      properties:
+        serverTime: { type: string, format: date-time }
+        stages:
+          type: array
+          items: { $ref: '#/components/schemas/Stage' }
+
+    Stage:
+      type: object
+      required: [stageId, name, entryStatus]
+      properties:
+        stageId: { type: integer, format: int64 }
+        name: { type: string }
+        description: { type: [string, 'null'] }
+        entryStatus: { $ref: '#/components/schemas/EntryStatus' }
+        displayOrder: { type: integer }
+        zones:
+          type: array
+          items: { $ref: '#/components/schemas/StageZone' }
+
+    StageZone:
+      type: object
+      required: [zoneId, name]
+      properties:
+        zoneId: { type: integer, format: int64 }
+        name: { type: string }
+        level:
+          oneOf:
+            - { $ref: '#/components/schemas/CongestionLevel' }
+            - type: 'null'
+        estimatedPeople: { type: [integer, 'null'], minimum: 0 }
+        updatedAt: { type: [string, 'null'], format: date-time }
+        displayOrder: { type: integer }
+
+    StageUpsertRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, maxLength: 100 }
+        description: { type: string, maxLength: 255 }
+        displayOrder: { type: integer, default: 0 }
+
+    ZoneUpsertRequest:
+      type: object
+      required: [name]
+      properties:
+        name: { type: string, maxLength: 100 }
+        displayOrder: { type: integer, default: 0 }
+
+    CongestionCreateRequest:
+      type: object
+      required: [level]
+      properties:
+        level: { $ref: '#/components/schemas/CongestionLevel' }
+        estimatedPeople: { type: integer, minimum: 0 }
+
+    CongestionLog:
+      type: object
+      required: [congestionLogId, zoneId, level, recordedAt]
+      properties:
+        congestionLogId: { type: integer, format: int64 }
+        zoneId: { type: integer, format: int64 }
+        level: { $ref: '#/components/schemas/CongestionLevel' }
+        estimatedPeople: { type: [integer, 'null'] }
+        recordedAt: { type: string, format: date-time }
+        recordedBy: { type: [string, 'null'] }
+
+    CongestionPoint:
+      type: object
+      required: [zoneId, level, recordedAt]
+      properties:
+        zoneId: { type: integer, format: int64 }
+        level: { $ref: '#/components/schemas/CongestionLevel' }
+        estimatedPeople: { type: [integer, 'null'] }
+        recordedAt: { type: string, format: date-time }
+
+    # ---------------------------------------------------- 웨이팅
+    WaitingStatus:
+      type: object
+      required: [boothId, acceptingStatus, waitingTeamCount, estimationAvailable]
+      properties:
+        boothId: { type: integer, format: int64 }
+        acceptingStatus: { $ref: '#/components/schemas/AcceptingStatus' }
+        waitingTeamCount: { type: integer, minimum: 0 }
+        estimatedWaitMinutes: { type: [integer, 'null'], minimum: 0 }
+        estimationAvailable:
+          type: boolean
+          description: false 면 표본 부족. 화면에는 "산출 중"으로 표시한다 (F-WAI-07).
+        myActiveWaitingId:
+          type: [string, 'null']
+          format: uuid
+
+    WaitingCreateRequest:
+      type: object
+      required: [partySize]
+      additionalProperties: false
+      description: |
+        전화번호는 선택 입력이다. 미입력 시에도 등록이 완료되며 화면 표시로만 안내한다.
+        `phoneNumber` 를 보낼 때는 `privacyConsent: true` 가 반드시 함께 있어야 하며,
+        없으면 400 C002 로 거부한다. 이 규칙은 서버가 검증한다.
+      properties:
+        partySize:
+          type: integer
+          minimum: 1
+          maximum: 10
+        phoneNumber:
+          type: [string, 'null']
+          pattern: '^01[016789]-?[0-9]{3,4}-?[0-9]{4}$'
+          description: 선택 입력. 입력 시 호출 문자를 받는다.
+        privacyConsent:
+          type: boolean
+          description: '`phoneNumber` 를 보낼 때만 필수이며 true 여야 한다.'
+
+    WaitingTicket:
+      type: object
+      required: [waitingId, boothId, waitingNumber, partySize, status, aheadTeamCount, registeredAt, wsTopic]
+      properties:
+        waitingId: { type: string, format: uuid }
+        boothId: { type: integer, format: int64 }
+        boothName: { type: string }
+        waitingNumber:
+          type: integer
+          description: 부스별 대기표 번호(표시용). 순번이 아니다.
+        partySize: { type: integer }
+        status: { $ref: '#/components/schemas/WaitingStatusEnum' }
+        aheadTeamCount: { type: integer, minimum: 0 }
+        estimatedWaitMinutes: { type: [integer, 'null'] }
+        registeredAt: { type: string, format: date-time }
+        smsEnabled:
+          type: boolean
+          description: 전화번호를 입력해 호출 문자를 받는지 여부
+        wsTopic:
+          type: string
+          description: 구독할 STOMP 개인 토픽
+          examples: ['/topic/waiting/9f3c1e7a-2b5d-4c88-9a01-6d7e8f012345']
+
+    WaitingDetail:
+      type: object
+      required: [waitingId, boothId, waitingNumber, status, serverTime]
+      properties:
+        waitingId: { type: string, format: uuid }
+        boothId: { type: integer, format: int64 }
+        boothName: { type: string }
+        waitingNumber: { type: integer }
+        partySize: { type: integer }
+        status: { $ref: '#/components/schemas/WaitingStatusEnum' }
+        aheadTeamCount: { type: integer, minimum: 0 }
+        estimatedWaitMinutes: { type: [integer, 'null'] }
+        registeredAt: { type: string, format: date-time }
+        calledAt: { type: [string, 'null'], format: date-time }
+        noShowDeadlineAt:
+          type: [string, 'null']
+          format: date-time
+          description: 남은 시간 표시용. 자동 노쇼 전이는 발생하지 않는다.
+        serverTime: { type: string, format: date-time }
+
+    AdminWaitingList:
+      type: object
+      required: [boothId, acceptingStatus, serverTime, summary, waitings]
+      properties:
+        boothId: { type: integer, format: int64 }
+        acceptingStatus: { $ref: '#/components/schemas/AcceptingStatus' }
+        serverTime: { type: string, format: date-time }
+        summary:
+          type: object
+          properties:
+            waiting: { type: integer }
+            called: { type: integer }
+            enteredToday: { type: integer }
+            noShowToday: { type: integer }
+        waitings:
+          type: array
+          items: { $ref: '#/components/schemas/AdminWaitingItem' }
+
+    AdminWaitingItem:
+      type: object
+      required: [waitingId, waitingNumber, partySize, status, registeredAt]
+      properties:
+        waitingId: { type: string, format: uuid }
+        waitingNumber: { type: integer }
+        partySize: { type: integer }
+        status: { $ref: '#/components/schemas/WaitingStatusEnum' }
+        registeredAt: { type: string, format: date-time }
+        calledAt: { type: [string, 'null'], format: date-time }
+        noShowDeadlineAt: { type: [string, 'null'], format: date-time }
+        noShowCandidate:
+          type: boolean
+          description: 호출 후 5분 경과. 화면에서 강조하되 자동 전이하지 않는다.
+        phoneNumberMasked:
+          type: [string, 'null']
+          description: 전화번호 미입력자는 null. 항상 마스킹해 반환한다.
+          examples: ['010-****-5678']
+        smsStatus:
+          type: [string, 'null']
+          enum: [SENT, FAILED, SKIPPED_LIMIT, SKIPPED_NO_PHONE, null]
+          description: 호출 문자 발송 결과. 현장에서 "문자가 왜 안 갔는지" 확인용
+
+    # ---------------------------------------------------- 지도
+    Point:
+      type: object
+      required: [x, y]
+      properties:
+        x: { type: integer, minimum: 0 }
+        y: { type: integer, minimum: 0 }
+      description: 도면 픽셀 좌표계
+
+    Floorplan:
+      type: object
+      required: [imageUrl, width, height, version]
+      properties:
+        imageUrl: { type: string, format: uri }
+        width: { type: integer }
+        height: { type: integer }
+        version:
+          type: integer
+          description: 교체 시 증가. 클라이언트 캐시 무효화 키.
+
+    CalibrationPoint:
+      type: object
+      required: [lat, lng, x, y]
+      properties:
+        lat: { type: number, format: double, minimum: -90, maximum: 90 }
+        lng: { type: number, format: double, minimum: -180, maximum: 180 }
+        x: { type: integer, minimum: 0 }
+        y: { type: integer, minimum: 0 }
+
+    MapBounds:
+      type: object
+      required: [minLat, maxLat, minLng, maxLng]
+      properties:
+        minLat: { type: number, format: double }
+        maxLat: { type: number, format: double }
+        minLng: { type: number, format: double }
+        maxLng: { type: number, format: double }
+
+    MapResponse:
+      type: object
+      required: [floorplan, calibration, bounds]
+      properties:
+        floorplan: { $ref: '#/components/schemas/Floorplan' }
+        calibration:
+          type: array
+          minItems: 3
+          items: { $ref: '#/components/schemas/CalibrationPoint' }
+        bounds: { $ref: '#/components/schemas/MapBounds' }
+
+    MapPin:
+      type: object
+      required: [pinId, targetType, targetId, name, x, y]
+      properties:
+        pinId: { type: integer, format: int64 }
+        targetType: { $ref: '#/components/schemas/PinTargetType' }
+        targetId: { type: integer, format: int64 }
+        name: { type: string }
+        category: { type: [string, 'null'] }
+        x: { type: integer }
+        y: { type: integer }
+        waitingTeamCount: { type: [integer, 'null'] }
+
+    MapPinUpsert:
+      type: object
+      required: [targetType, targetId, x, y]
+      properties:
+        targetType: { $ref: '#/components/schemas/PinTargetType' }
+        targetId: { type: integer, format: int64 }
+        x: { type: integer, minimum: 0 }
+        y: { type: integer, minimum: 0 }
+
+    # ---------------------------------------------------- 공지
+    Notice:
+      type: object
+      required: [noticeId, title, content, urgent]
+      properties:
+        noticeId: { type: integer, format: int64 }
+        title: { type: string }
+        content: { type: string }
+        urgent: { type: boolean }
+        published: { type: boolean }
+        publishedAt: { type: [string, 'null'], format: date-time }
+
+    NoticeUpsertRequest:
+      type: object
+      required: [title, content]
+      properties:
+        title: { type: string, maxLength: 200 }
+        content: { type: string }
+        urgent: { type: boolean, default: false }
+
+    # ---------------------------------------------------- 관리자
+    LoginRequest:
+      type: object
+      required: [loginId, password]
+      properties:
+        loginId: { type: string, maxLength: 50 }
+        password: { type: string, format: password }
+
+    LoginResponse:
+      type: object
+      required: [expiresIn, account]
+      description: |
+        세션 쿠키는 Set-Cookie 헤더로 전달된다. 본문에는 토큰이 없다.
+      properties:
+        expiresIn:
+          type: integer
+          description: 세션 만료까지 남은 초
+          examples: [28800]
+        account: { $ref: '#/components/schemas/AdminAccount' }
+
+    AdminAccount:
+      type: object
+      required: [accountId, name, role]
+      properties:
+        accountId: { type: integer, format: int64 }
+        loginId: { type: string }
+        name: { type: string }
+        role: { $ref: '#/components/schemas/AdminRole' }
+        active: { type: boolean }
+        managedBoothIds:
+          type: array
+          items: { type: integer, format: int64 }
+        lastLoginAt: { type: [string, 'null'], format: date-time }
+
+    AccountCreateRequest:
+      type: object
+      required: [loginId, name, role]
+      properties:
+        loginId: { type: string, maxLength: 50 }
+        name: { type: string, maxLength: 50 }
+        role: { $ref: '#/components/schemas/AdminRole' }
+        managedBoothIds:
+          type: array
+          items: { type: integer, format: int64 }
+
+    AccountCreateResponse:
+      allOf:
+        - { $ref: '#/components/schemas/AdminAccount' }
+        - type: object
+          properties:
+            temporaryPassword:
+              type: string
+              description: 발급 시 1회만 반환된다. 재조회 불가.
+
+    SmsSendResult:
+      type: object
+      required: [waitingId, status, sentAt]
+      properties:
+        waitingId: { type: string, format: uuid }
+        status:
+          type: string
+          enum: [SENT, FAILED, SKIPPED_LIMIT, SKIPPED_NO_PHONE]
+        messageType:
+          type: string
+          enum: [CALL, RESEND]
+        errorCode: { type: [string, 'null'] }
+        sentAt: { type: string, format: date-time }
+
+    SmsUsage:
+      type: object
+      required: [dailyLimit, sentToday, totalSent, totalCost]
+      description: 자비 부담 예산의 소진 현황
+      properties:
+        dailyLimit:
+          type: integer
+          description: 일일 발송 한도 (TBD-07 에서 확정)
+        sentToday: { type: integer }
+        remainingToday: { type: integer }
+        totalSent: { type: integer }
+        totalFailed: { type: integer }
+        totalSkippedLimit:
+          type: integer
+          description: 한도 초과로 발송하지 못한 건수. 이 값이 크면 한도 상향을 검토한다
+        totalCost:
+          type: integer
+          description: 누적 발송 비용(원)
+        unitCost: { type: integer, description: 건당 단가(원) }
+
+    Translation:
+      type: object
+      required: [translationId, lang, sourceText, status]
+      properties:
+        translationId: { type: integer, format: int64 }
+        lang: { type: string, examples: ['en'] }
+        sourceText: { type: string }
+        translatedText: { type: [string, 'null'] }
+        status: { $ref: '#/components/schemas/TranslationStatus' }
+        manualOverride: { type: boolean }
+        updatedAt: { type: string, format: date-time }
+
+    Dashboard:
+      type: object
+      required: [serverTime, activeUserCount, totalWaitingTeams]
+      properties:
+        serverTime: { type: string, format: date-time }
+        activeUserCount: { type: integer }
+        totalWaitingTeams: { type: integer }
+        booths:
+          type: array
+          items:
+            type: object
+            properties:
+              boothId: { type: integer, format: int64 }
+              name: { type: string }
+              waitingTeamCount: { type: integer }
+              acceptingStatus: { $ref: '#/components/schemas/AcceptingStatus' }
+              lastCalledAt: { type: [string, 'null'], format: date-time }
+        zones:
+          type: array
+          items: { $ref: '#/components/schemas/StageZone' }
+        todayStats:
+          type: object
+          properties:
+            totalRegistered: { type: integer }
+            entered: { type: integer }
+            noShow: { type: integer }
+            canceled: { type: integer }
+
+    AuditLog:
+      type: object
+      required: [auditLogId, action, occurredAt]
+      properties:
+        auditLogId: { type: integer, format: int64 }
+        accountId: { type: [integer, 'null'], format: int64 }
+        accountName: { type: [string, 'null'] }
+        action:
+          type: string
+          examples: ['CONGESTION_INPUT', 'WAITING_CALL', 'NOTICE_PUBLISH']
+        targetType: { type: [string, 'null'] }
+        targetId: { type: [string, 'null'] }
+        detail: { type: [string, 'null'] }
+        ip: { type: [string, 'null'] }
+        occurredAt: { type: string, format: date-time }
+
+    AuditLogPage:
+      type: object
+      required: [content, page, size, totalElements, totalPages]
+      properties:
+        content:
+          type: array
+          items: { $ref: '#/components/schemas/AuditLog' }
+        page: { type: integer }
+        size: { type: integer }
+        totalElements: { type: integer }
+        totalPages: { type: integer }

@@ -1,0 +1,2260 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>KUFIM_ERD_v0.4.md</title>
+<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+<style>
+/* https://github.com/microsoft/vscode/blob/master/extensions/markdown-language-features/media/markdown.css */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+body {
+	font-family: var(--vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+	font-size: var(--vscode-markdown-font-size, 14px);
+	padding: 0 26px;
+	line-height: var(--vscode-markdown-line-height, 22px);
+	word-wrap: break-word;
+}
+
+#code-csp-warning {
+	position: fixed;
+	top: 0;
+	right: 0;
+	color: white;
+	margin: 16px;
+	text-align: center;
+	font-size: 12px;
+	font-family: sans-serif;
+	background-color:#444444;
+	cursor: pointer;
+	padding: 6px;
+	box-shadow: 1px 1px 1px rgba(0,0,0,.25);
+}
+
+#code-csp-warning:hover {
+	text-decoration: none;
+	background-color:#007acc;
+	box-shadow: 2px 2px 2px rgba(0,0,0,.25);
+}
+
+body.scrollBeyondLastLine {
+	margin-bottom: calc(100vh - 22px);
+}
+
+body.showEditorSelection .code-line {
+	position: relative;
+}
+
+body.showEditorSelection .code-active-line:before,
+body.showEditorSelection .code-line:hover:before {
+	content: "";
+	display: block;
+	position: absolute;
+	top: 0;
+	left: -12px;
+	height: 100%;
+}
+
+body.showEditorSelection li.code-active-line:before,
+body.showEditorSelection li.code-line:hover:before {
+	left: -30px;
+}
+
+.vscode-light.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.15);
+}
+
+.vscode-light.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(0, 0, 0, 0.40);
+}
+
+.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-dark.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.4);
+}
+
+.vscode-dark.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 255, 255, 0.60);
+}
+
+.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+.vscode-high-contrast.showEditorSelection .code-active-line:before {
+	border-left: 3px solid rgba(255, 160, 0, 0.7);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+	border-left: 3px solid rgba(255, 160, 0, 1);
+}
+
+.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+	border-left: none;
+}
+
+img {
+	max-width: 100%;
+	max-height: 100%;
+}
+
+a {
+	text-decoration: none;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+a:focus,
+input:focus,
+select:focus,
+textarea:focus {
+	outline: 1px solid -webkit-focus-ring-color;
+	outline-offset: -1px;
+}
+
+hr {
+	border: 0;
+	height: 2px;
+	border-bottom: 2px solid;
+}
+
+h1 {
+	padding-bottom: 0.3em;
+	line-height: 1.2;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+}
+
+h1, h2, h3 {
+	font-weight: normal;
+}
+
+table {
+	border-collapse: collapse;
+}
+
+table > thead > tr > th {
+	text-align: left;
+	border-bottom: 1px solid;
+}
+
+table > thead > tr > th,
+table > thead > tr > td,
+table > tbody > tr > th,
+table > tbody > tr > td {
+	padding: 5px 10px;
+}
+
+table > tbody > tr + tr > td {
+	border-top: 1px solid;
+}
+
+blockquote {
+	margin: 0 7px 0 5px;
+	padding: 0 16px 0 10px;
+	border-left-width: 5px;
+	border-left-style: solid;
+}
+
+code {
+	font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+	font-size: 1em;
+	line-height: 1.357em;
+}
+
+body.wordWrap pre {
+	white-space: pre-wrap;
+}
+
+pre:not(.hljs),
+pre.hljs code > div {
+	padding: 16px;
+	border-radius: 3px;
+	overflow: auto;
+}
+
+pre code {
+	color: var(--vscode-editor-foreground);
+	tab-size: 4;
+}
+
+/** Theming */
+
+.vscode-light pre {
+	background-color: rgba(220, 220, 220, 0.4);
+}
+
+.vscode-dark pre {
+	background-color: rgba(10, 10, 10, 0.4);
+}
+
+.vscode-high-contrast pre {
+	background-color: rgb(0, 0, 0);
+}
+
+.vscode-high-contrast h1 {
+	border-color: rgb(0, 0, 0);
+}
+
+.vscode-light table > thead > tr > th {
+	border-color: rgba(0, 0, 0, 0.69);
+}
+
+.vscode-dark table > thead > tr > th {
+	border-color: rgba(255, 255, 255, 0.69);
+}
+
+.vscode-light h1,
+.vscode-light hr,
+.vscode-light table > tbody > tr + tr > td {
+	border-color: rgba(0, 0, 0, 0.18);
+}
+
+.vscode-dark h1,
+.vscode-dark hr,
+.vscode-dark table > tbody > tr + tr > td {
+	border-color: rgba(255, 255, 255, 0.18);
+}
+
+</style>
+
+<style>
+/* Tomorrow Theme */
+/* http://jmblog.github.com/color-themes-for-google-code-highlightjs */
+/* Original theme - https://github.com/chriskempson/tomorrow-theme */
+
+/* Tomorrow Comment */
+.hljs-comment,
+.hljs-quote {
+	color: #8e908c;
+}
+
+/* Tomorrow Red */
+.hljs-variable,
+.hljs-template-variable,
+.hljs-tag,
+.hljs-name,
+.hljs-selector-id,
+.hljs-selector-class,
+.hljs-regexp,
+.hljs-deletion {
+	color: #c82829;
+}
+
+/* Tomorrow Orange */
+.hljs-number,
+.hljs-built_in,
+.hljs-builtin-name,
+.hljs-literal,
+.hljs-type,
+.hljs-params,
+.hljs-meta,
+.hljs-link {
+	color: #f5871f;
+}
+
+/* Tomorrow Yellow */
+.hljs-attribute {
+	color: #eab700;
+}
+
+/* Tomorrow Green */
+.hljs-string,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-addition {
+	color: #718c00;
+}
+
+/* Tomorrow Blue */
+.hljs-title,
+.hljs-section {
+	color: #4271ae;
+}
+
+/* Tomorrow Purple */
+.hljs-keyword,
+.hljs-selector-tag {
+	color: #8959a8;
+}
+
+.hljs {
+	display: block;
+	overflow-x: auto;
+	color: #4d4d4c;
+	padding: 0.5em;
+}
+
+.hljs-emphasis {
+	font-style: italic;
+}
+
+.hljs-strong {
+	font-weight: bold;
+}
+</style>
+
+<style>
+/*
+ * Markdown PDF CSS
+ */
+
+ body {
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+	padding: 0 12px;
+}
+
+pre {
+	background-color: #f8f8f8;
+	border: 1px solid #cccccc;
+	border-radius: 3px;
+	overflow-x: auto;
+	white-space: pre-wrap;
+	overflow-wrap: break-word;
+}
+
+pre:not(.hljs) {
+	padding: 23px;
+	line-height: 19px;
+}
+
+blockquote {
+	background: rgba(127, 127, 127, 0.1);
+	border-color: rgba(0, 122, 204, 0.5);
+}
+
+.emoji {
+	height: 1.4em;
+}
+
+code {
+	font-size: 14px;
+	line-height: 19px;
+}
+
+/* for inline code */
+:not(pre):not(.hljs) > code {
+	color: #C9AE75; /* Change the old color so it seems less like an error */
+	font-size: inherit;
+}
+
+/* Page Break : use <div class="page"/> or <div class="page"></div> to insert page break
+-------------------------------------------------------- */
+.page {
+	page-break-after: always;
+}
+
+</style>
+
+<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+<body>
+  <script>
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+          ? 'dark'
+          : 'default'
+    });
+  </script>
+<h1 id="kufim-erd-개체-관계-설계서">KUFIM ERD (개체-관계 설계서)</h1>
+<table>
+<thead>
+<tr>
+<th>항목</th>
+<th>내용</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>문서 버전</td>
+<td>v0.4</td>
+</tr>
+<tr>
+<td>작성일</td>
+<td>2026-10-08</td>
+</tr>
+<tr>
+<td>DBMS</td>
+<td>MySQL 8.0 / <code>utf8mb4</code></td>
+</tr>
+<tr>
+<td>테이블 수</td>
+<td>적용 20 (JPA 엔터티 17 + 웨이팅 보조 3) · 보류 5</td>
+</tr>
+<tr>
+<td>DDL</td>
+<td><code>src/main/resources/db/migration/V1</code> ~ <code>V5</code></td>
+</tr>
+<tr>
+<td>관계도</td>
+<td><a href="./erd-v0.4.svg"><code>erd-v0.4.svg</code></a> (전체도) · <a href="./erd-v0.4.pdf"><code>erd-v0.4.pdf</code></a> (전체 + 영역별 확대 4쪽)</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="1-설계-원칙">1. 설계 원칙</h2>
+<ol>
+<li><strong>현재 UI에 있는 화면만 테이블로 만든다.</strong> 혼잡도·번역·이미지 갤러리·GPS 보정처럼 화면이 없는 기능은 보류 테이블로 분리한다 (§7).</li>
+<li><strong>내부 PK와 외부 노출 ID를 분리한다.</strong> 웨이팅은 <code>id BIGINT</code>와 <code>public_id CHAR(36)</code>(UUID)을 함께 갖는다. API 경로와 WebSocket 토픽에는 <code>public_id</code>만 쓴다.</li>
+<li><strong>전역 활성 웨이팅 1건은 DB가 보장한다.</strong> <code>active_waiting</code>의 PK를 <code>client_token</code>으로 두어, 동시 요청이 와도 한 토큰에 활성 표가 둘 생기지 않는다 (§3.12).</li>
+<li><strong>삭제는 논리 삭제를 기본으로 한다.</strong> <code>performance</code>, <code>booth</code>, <code>facility</code>, <code>notice</code>는 <code>deleted</code> 컬럼을 둔다.</li>
+<li><strong>이력은 append-only로 남긴다.</strong> <code>waiting_event</code>, <code>sms_send_log</code>, <code>audit_log</code>, <code>privacy_purge_log</code>는 UPDATE·DELETE 하지 않는다.</li>
+<li><strong>enum은 문자열로 저장한다.</strong> 숫자 순서 저장은 값 추가 시 기존 데이터가 깨진다.</li>
+<li><strong><code>festival_id</code>는 단일 축제여도 유지한다.</strong> 다른 테이블의 공통 기준이며, 멀티 이벤트 확장 시 분기점이 된다.</li>
+</ol>
+<p><strong>공통 컬럼</strong> — 모든 테이블(§3.12 ~ §3.14 보조 테이블 제외)은 아래 컬럼을 갖는다. §3에서는 반복 기재하지 않는다.</p>
+<table>
+<thead>
+<tr>
+<th>컬럼</th>
+<th>타입</th>
+<th>제약</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>id</code></td>
+<td>BIGINT</td>
+<td>PK, AI</td>
+<td></td>
+</tr>
+<tr>
+<td><code>created_at</code> / <code>updated_at</code></td>
+<td>DATETIME(3)</td>
+<td>NOT NULL</td>
+<td>JPA Auditing이 기록 (<code>common/entity/BaseEntity</code>)</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="2-erd">2. ERD</h2>
+<h3 id="21-전체-관계도">2.1 전체 관계도</h3>
+<p><img src="./erd-v0.4.svg" alt="KUFIM ERD v0.4"></p>
+<blockquote>
+<p>색상: 청록 = 적용, 주황 = 신규, 보라 = 보류.
+SVG는 2026-10-08 설계 시점 그림이다. 이후 추가된 <code>active_waiting</code>, <code>waiting_idempotency</code>, <code>waiting_call_idempotency</code>와 V2 ~ V5 컬럼은 아래 2.2 다이어그램과 §3 표를 기준으로 한다.</p>
+</blockquote>
+<h3 id="22-적용-테이블-다이어그램">2.2 적용 테이블 다이어그램</h3>
+<pre><code class="language-mermaid"><div class="mermaid">erDiagram
+    FESTIVAL ||--o{ STAGE : "포함"
+    FESTIVAL ||--o{ PERFORMANCE : "포함"
+    FESTIVAL ||--o{ BOOTH : "포함"
+    FESTIVAL ||--o{ FACILITY : "포함"
+    FESTIVAL ||--o{ MAP_FLOORPLAN : "포함"
+    FESTIVAL ||--o{ NOTICE : "포함"
+    FESTIVAL ||--o{ NOTIFICATION : "포함"
+
+    STAGE ||--o{ PERFORMANCE : "무대 배정"
+
+    BOOTH ||--o{ WAITING : "대기 접수"
+    BOOTH ||--o{ ADMIN_BOOTH : "담당 배정"
+
+    WAITING ||--o{ WAITING_EVENT : "상태 전이 이력"
+    WAITING ||--o{ SMS_SEND_LOG : "문자 발송"
+    WAITING ||--o| ACTIVE_WAITING : "활성 표"
+    WAITING ||--o{ WAITING_IDEMPOTENCY : "등록 재시도"
+    WAITING ||--o{ WAITING_CALL_IDEMPOTENCY : "호출 재시도"
+    WAITING ||--o{ NOTIFICATION : "호출 알림"
+
+    NOTICE ||--o{ NOTIFICATION : "공지 알림"
+    NOTIFICATION ||--o{ NOTIFICATION_READ : "읽음"
+
+    MAP_FLOORPLAN ||--o{ MAP_PIN : "핀"
+
+    ADMIN_ACCOUNT ||--o{ ADMIN_BOOTH : "담당"
+    ADMIN_ACCOUNT ||--o{ NOTICE : "작성"
+    ADMIN_ACCOUNT ||--o{ WAITING : "호출·종료"
+    ADMIN_ACCOUNT ||--o{ SMS_SEND_LOG : "재발송"
+    ADMIN_ACCOUNT ||--o{ AUDIT_LOG : "조작"
+    ADMIN_ACCOUNT ||--o{ PRIVACY_PURGE_LOG : "실행"
+
+    FESTIVAL {
+        bigint id PK
+        varchar name
+        varchar location
+        datetime start_at
+        datetime end_at
+        varchar status
+    }
+    STAGE {
+        bigint id PK
+        bigint festival_id FK
+        varchar name
+        varchar entry_status
+        int display_order
+    }
+    PERFORMANCE {
+        bigint id PK
+        bigint festival_id FK
+        bigint stage_id FK
+        varchar title
+        varchar type
+        text cast_members
+        text setlist
+        datetime start_at
+        datetime end_at
+        boolean deleted
+    }
+    BOOTH {
+        bigint id PK
+        bigint festival_id FK
+        varchar name
+        varchar organizer_type
+        varchar period
+        char booth_code UK
+        boolean waiting_enabled
+        varchar accepting_status
+        int estimate_minutes_per_team
+        int auto_cancel_minutes
+        boolean deleted
+    }
+    FACILITY {
+        bigint id PK
+        bigint festival_id FK
+        varchar type
+        varchar name
+        varchar place
+        boolean deleted
+    }
+    MAP_FLOORPLAN {
+        bigint id PK
+        bigint festival_id FK
+        varchar image_url
+        int width
+        int height
+    }
+    MAP_PIN {
+        bigint id PK
+        bigint floorplan_id FK
+        varchar target_type
+        bigint target_id
+        decimal x_percent
+        decimal y_percent
+    }
+    NOTICE {
+        bigint id PK
+        bigint festival_id FK
+        varchar category
+        varchar title
+        datetime published_at
+        boolean deleted
+    }
+    WAITING {
+        bigint id PK
+        char public_id UK
+        bigint booth_id FK
+        char client_token
+        char student_number
+        char phone_number
+        int waiting_number
+        tinyint party_size
+        varchar status
+        datetime called_at
+        datetime auto_cancel_at
+        int recall_count
+        varchar close_reason
+    }
+    ACTIVE_WAITING {
+        char client_token PK
+        bigint waiting_id FK
+    }
+    WAITING_IDEMPOTENCY {
+        char client_token PK
+        varchar request_key PK
+        bigint waiting_id FK
+    }
+    WAITING_CALL_IDEMPOTENCY {
+        bigint waiting_id PK
+        varchar request_key PK
+    }
+    WAITING_EVENT {
+        bigint id PK
+        bigint waiting_id FK
+        varchar from_status
+        varchar to_status
+        varchar actor_type
+        datetime occurred_at
+    }
+    SMS_SEND_LOG {
+        bigint id PK
+        bigint waiting_id FK
+        varchar message_type
+        varchar status
+        int cost
+        datetime sent_at
+    }
+    NOTIFICATION {
+        bigint id PK
+        bigint festival_id FK
+        varchar type
+        bigint notice_id FK
+        bigint waiting_id FK
+        char recipient_client_token
+    }
+    NOTIFICATION_READ {
+        bigint id PK
+        bigint notification_id FK
+        char client_token
+        datetime read_at
+    }
+    ADMIN_ACCOUNT {
+        bigint id PK
+        varchar login_id UK
+        varchar role
+        boolean active
+        int session_version
+    }
+    ADMIN_BOOTH {
+        bigint id PK
+        bigint admin_account_id FK
+        bigint booth_id FK
+    }
+    AUDIT_LOG {
+        bigint id PK
+        bigint admin_account_id FK
+        varchar action
+        datetime occurred_at
+    }
+    PRIVACY_PURGE_LOG {
+        bigint id PK
+        bigint executed_by FK
+        varchar target_type
+        int target_count
+        datetime executed_at
+    }
+</div></code></pre>
+<h3 id="23-관계-요약">2.3 관계 요약</h3>
+<pre class="hljs"><code><div>festival 1 ── N stage / performance / booth / facility / map_floorplan / notice / notification
+stage 1 ── N performance
+admin_account 1 ── N admin_booth N ── 1 booth
+booth 1 ── N waiting 1 ── N waiting_event / sms_send_log
+waiting 1 ── 0..1 active_waiting                (활성 상태일 때만 행 존재)
+waiting 1 ── N waiting_idempotency / waiting_call_idempotency
+map_floorplan 1 ── N map_pin ── 0..1 booth 또는 facility   (다형 참조, FK 없음)
+notice 1 ── N notification 1 ── N notification_read
+waiting 1 ── N notification
+admin_account 1 ── N notice / audit_log / privacy_purge_log
+</div></code></pre>
+<hr>
+<h2 id="3-테이블-상세">3. 테이블 상세</h2>
+<h3 id="31-festival--축제">3.1 <code>festival</code> — 축제</h3>
+<blockquote>
+<p>엔터티 <code>Festival</code> · API <code>GET /festival</code></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>컬럼</th>
+<th>타입</th>
+<th>제약</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>name</code></td>
+<td>VARCHAR(100)</td>
+<td>NOT NULL</td>
+<td>축제명</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>TEXT</td>
+<td>NULL</td>
+<td>소개</td>
+</tr>
+<tr>
+<td><code>location</code></td>
+<td>VARCHAR(200)</td>
+<td>NULL</td>
+<td>장소 (V2 추가)</td>
+</tr>
+<tr>
+<td><code>start_at</code> / <code>end_at</code></td>
+<td>DATETIME(3)</td>
+<td>NOT NULL</td>
+<td>축제 기간</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>VARCHAR(20)</td>
+<td>NOT NULL</td>
+<td><code>BEFORE</code> <code>ONGOING</code> <code>ENDED</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>본 학기에는 레코드 1건만 운영한다. FE의 DAY 1/2는 이 기간에서 매핑한다.</p>
+</blockquote>
+<hr>
+<h3 id="32-admin_account--관리자-계정">3.2 <code>admin_account</code> — 관리자 계정</h3>
+<blockquote>
+<p>엔터티 <code>AdminAccount</code> · API <code>/admin/auth/*</code>, <code>/admin/accounts</code></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>컬럼</th>
+<th>타입</th>
+<th>제약</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>login_id</code></td>
+<td>VARCHAR(50)</td>
+<td>NOT NULL, UNIQUE</td>
+<td>로그인 ID</td>
+</tr>
+<tr>
+<td><code>password_hash</code></td>
+<td>VARCHAR(100)</td>
+<td>NOT NULL</td>
+<td>BCrypt 해시</td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td>VARCHAR(50)</td>
+<td>NOT NULL</td>
+<td>표시명</td>
+</tr>
+<tr>
+<td><code>role</code></td>
+<td>VARCHAR(20)</td>
+<td>NOT NULL</td>
+<td><code>SUPER_ADMIN</code> <code>BOOTH_ADMIN</code></td>
+</tr>
+<tr>
+<td><code>active</code></td>
+<td>BOOLEAN</td>
+<td>NOT NULL</td>
+<td>비활성화(논리 삭제)</td>
+</tr>
+<tr>
+<td><code>last_login_at</code></td>
+<td>DATETIME(3)</td>
+<td>NULL</td>
+<td></td>
+</tr>
+<tr>
+<td><code>session_version</code></td>
+<td>INT</td>
+<td>NOT NULL, DEFAULT 0</td>
+<td>강제 로그아웃 시 증가. 이전 세션 무효화 (V3 추가)</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="33-admin_booth--계정부스-담당-매핑">3.3 <code>admin_booth</code> — 계정·부스 담당 매핑</h3>
+<blockquote>
+<p>엔터티 <code>AdminBooth</code></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>컬럼</th>
+<th>타입</th>
+<th>제약</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>admin_account_id</code></td>
+<td>BIGINT</td>
+<td>NOT NULL, FK → <code>admin_account</code></td>
+</tr>
+<tr>
+<td><code>booth_id</code></td>
+<td>BIGINT</td>
+<td>NOT NULL, FK → <code>booth</code></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><code>UNIQUE (admin_account_id, booth_id)</code> — <code>uk_admin_booth</code></li>
+<li><code>BOOTH_ADMIN</code>의 담당 부스 권한 검사는 이 테이블로 수행한다.</li>
+</ul>
+<hr>
+<h3 id="34-stage--무대">3.4 <code>stage</code> — 무대</h3>
+<blockquote>
+<p>엔터티 <code>Stage</code> · API <code>GET /stages</code>, <code>/admin/stages</code></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>컬럼</th>
+<th>타입</th>
+<th>제약</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>festival_id</code></td>
+<td>BIGINT</td>
+<td>NOT NULL, FK</td>
+<td></td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td>VARCHAR(100)</td>
+<td>NOT NULL</td>
+<td>예: 메인 무대</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>VARCHAR(255)</td>
+<td>NULL</td>
+<td>위치 설명</td>
+</tr>
+<tr>
+<td><code>entry_status</code></td>
+<td>VARCHAR(20)</td>
+<td>NOT NULL</td>
+<td><code>OPEN</code> <code>RESTRICTED</code></td>
+</tr>
+<tr>
+<td><code>display_order</code></td>
+<td>INT</td>
+<td>NOT NULL</td>
+<td>화면 정렬</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>홈의 '보통' 표시와 <code>entry_status</code>는 아직 매핑하지 않았다 (§8).</p>
+</blockquote>
+<hr>
+<h3 id="35-performance--공연">3.5 <code>performance</code> — 공연</h3>
+<blockquote>
+<p>엔터티 <code>Performance</code> · API <code>GET /performances</code>, <code>/admin/performances</code></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>컬럼</th>
+<th>타입</th>
+<th>제약</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>festival_id</code></td>
+<td>BIGINT</td>
+<td>NOT NULL, FK</td>
+<td></td>
+</tr>
+<tr>
+<td><code>stage_id</code></td>
+<td>BIGINT</td>
+<td>NOT NULL, FK → <code>stage</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>title</code></td>
+<td>VARCHAR(200)</td>
+<td>NOT NULL</td>
+<td>UI 입력 15자</td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td>VARCHAR(20)</td>
+<td>NOT NULL</td>
+<td><code>BAND</code> <code>DANCE</code> <code>ARTIST</code> <code>OTHER</code></td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>TEXT</td>
+<td>NULL</td>
+<td>공연 소개</td>
+</tr>
+<tr>
+<td><code>additional_description</code></td>
+<td>TEXT</td>
+<td>NULL</td>
+<td>두 번째 소개 필드</td>
+</tr>
+<tr>
+<td><code>cast_members</code></td>
+<td>TEXT</td>
+<td>NULL</td>
+<td>출연진</td>
+</tr>
+<tr>
+<td><code>setlist</code></td>
+<td>TEXT</td>
+<td>NULL</td>
+<td>셋리스트</td>
+</tr>
+<tr>
+<td><code>start_at</code> / <code>end_at</code></td>
+<td>DATETIME(3)</td>
+<td>NOT NULL</td>
+<td></td>
+</tr>
+<tr>
+<td><code>display_order</code></td>
+<td>INT</td>
+<td>NOT NULL</td>
+<td></td>
+</tr>
+<tr>
+<td><code>deleted</code></td>
+<td>BOOLEAN</td>
+<td>NOT NULL</td>
+<td>논리 삭제</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><code>INDEX idx_performance_festival_time (festival_id, start_at)</code> — 타임테이블·현재 공연 조회</li>
+<li>ERD 설계안의 <code>cast</code>는 SQL 키워드와 혼동을 피하려고 DB <code>cast_members</code>, Java <code>castMembers</code>로 명명했다.</li>
+<li><code>NOW</code> / <code>NEXT</code> / <code>PAST</code>는 저장하지 않는다. 서버 시각과 공연 시간으로 계산한다.</li>
+<li>v0.2의 <code>artist</code>, <code>image_url</code>, <code>schedule_changed</code>는 제거했다.</li>
+</ul>
+<hr>
+<h3 id="36-booth--부스">3.6 <code>booth</code> — 부스</h3>
+<blockquote>
+<p>엔터티 <code>Booth</code> · API <code>GET /booths</code>, <code>/admin/booths</code>, <code>/admin/booths/{boothId}/waiting-config</code></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>컬럼</th>
+<th>타입</th>
+<th>제약</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>festival_id</code></td>
+<td>BIGINT</td>
+<td>NOT NULL, FK</td>
+<td></td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td>VARCHAR(100)</td>
+<td>NOT NULL</td>
+<td></td>
+</tr>
+<tr>
+<td><code>organizer_type</code></td>
+<td>VARCHAR(20)</td>
+<td>NOT NULL</td>
+<td><code>STUDENT_COUNCIL</code> <code>COLLEGE</code> <code>CLUB</code> <code>INDIVIDUAL</code> <code>UNIVERSITY</code></td>
+</tr>
+<tr>
+<td><code>period</code></td>
+<td>VARCHAR(20)</td>
+<td>NOT NULL</td>
+<td><code>DAY</code> <code>NIGHT</code></td>
+</tr>
+<tr>
+<td><code>place</code></td>
+<td>VARCHAR(100)</td>
+<td>NOT NULL</td>
+<td>위치</td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>TEXT</td>
+<td>NULL</td>
+<td></td>
+</tr>
+<tr>
+<td><code>operating_hours</code></td>
+<td>VARCHAR(100)</td>
+<td>NULL</td>
+<td>자유 텍스트</td>
+</tr>
+<tr>
+<td><code>booth_code</code></td>
+<td>CHAR(12)</td>
+<td>NULL, UNIQUE</td>
+<td><strong>QR 식별자.</strong> 추측 불가 난수</td>
+</tr>
+<tr>
+<td><code>qr_issued_at</code></td>
+<td>DATETIME(3)</td>
+<td>NULL</td>
+<td>최종 발급 시각</td>
+</tr>
+<tr>
+<td><code>waiting_enabled</code></td>
+<td>BOOLEAN</td>
+<td>NOT NULL</td>
+<td>웨이팅 사용 여부. <code>false</code>면 API에서 <code>DISABLED</code>로 파생</td>
+</tr>
+<tr>
+<td><code>accepting_status</code></td>
+<td>VARCHAR(20)</td>
+<td>NOT NULL</td>
+<td><code>OPEN</code> <code>PAUSED</code> <code>CLOSED</code></td>
+</tr>
+<tr>
+<td><code>estimate_minutes_per_team</code></td>
+<td>INT</td>
+<td>NOT NULL</td>
+<td>1팀당 예상 시간 (앱 기본값 5분)</td>
+</tr>
+<tr>
+<td><code>auto_cancel_minutes</code></td>
+<td>INT</td>
+<td>NOT NULL, CHECK <code>= 10</code></td>
+<td>호출 후 자동 취소 시간. <strong>10분 고정</strong> (V5)</td>
+</tr>
+<tr>
+<td><code>waiting_seq</code></td>
+<td>INT</td>
+<td>NOT NULL</td>
+<td>부스별 대기번호 채번</td>
+</tr>
+<tr>
+<td><code>deleted</code></td>
+<td>BOOLEAN</td>
+<td>NOT NULL</td>
+<td>논리 삭제</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><code>INDEX idx_booth_filter (festival_id, period, organizer_type, deleted)</code> — 부스 목록 필터</li>
+<li><code>CHECK ck_booth_auto_cancel_ten (auto_cancel_minutes = 10)</code></li>
+<li>v0.2의 <code>category</code>(체험·음식·푸드트럭)는 현재 UI 필터와 맞지 않아 <code>organizer_type</code>으로 의미를 바꿨다. 음식 등 프로그램 분류가 다시 필요하면 <code>program_type</code>을 새로 추가한다.</li>
+<li><code>thumbnail_url</code>, <code>notice_text</code>는 현재 UI에서 쓰지 않아 제거했다.</li>
+</ul>
+<hr>
+<h3 id="37-facility--시설">3.7 <code>facility</code> — 시설</h3>
+<blockquote>
+<p>엔터티 <code>Facility</code> · API <code>GET /facilities</code>, <code>/admin/facilities</code></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>컬럼</th>
+<th>타입</th>
+<th>제약</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>festival_id</code></td>
+<td>BIGINT</td>
+<td>NOT NULL, FK</td>
+<td></td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td>VARCHAR(20)</td>
+<td>NOT NULL</td>
+<td><code>CONTROL_ROOM</code> <code>RESTROOM</code> <code>ALCOHOL_SALES</code> <code>PHOTO_BOOTH</code> <code>SMOKING_AREA</code></td>
+</tr>
+<tr>
+<td><code>name</code></td>
+<td>VARCHAR(100)</td>
+<td>NOT NULL</td>
+<td></td>
+</tr>
+<tr>
+<td><code>description</code></td>
+<td>VARCHAR(255)</td>
+<td>NULL</td>
+<td></td>
+</tr>
+<tr>
+<td><code>place</code></td>
+<td>VARCHAR(100)</td>
+<td>NOT NULL</td>
+<td>위치</td>
+</tr>
+<tr>
+<td><code>operating_hours</code></td>
+<td>VARCHAR(100)</td>
+<td>NULL</td>
+<td></td>
+</tr>
+<tr>
+<td><code>deleted</code></td>
+<td>BOOLEAN</td>
+<td>NOT NULL</td>
+<td>논리 삭제</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="38-map_floorplan--지도-도면">3.8 <code>map_floorplan</code> — 지도 도면</h3>
+<blockquote>
+<p>엔터티 <code>MapFloorplan</code> · API <code>GET /map</code></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>컬럼</th>
+<th>타입</th>
+<th>제약</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>festival_id</code></td>
+<td>BIGINT</td>
+<td>NOT NULL, FK</td>
+<td></td>
+</tr>
+<tr>
+<td><code>image_url</code></td>
+<td>VARCHAR(500)</td>
+<td>NOT NULL</td>
+<td>도면 이미지</td>
+</tr>
+<tr>
+<td><code>width</code> / <code>height</code></td>
+<td>INT</td>
+<td>NOT NULL</td>
+<td>원본 크기</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>도면 버전·업로드 이력은 보류했다. v0.2의 <code>version</code>, <code>uploaded_by</code>는 제거했다.</p>
+</blockquote>
+<hr>
+<h3 id="39-map_pin--지도-핀">3.9 <code>map_pin</code> — 지도 핀</h3>
+<blockquote>
+<p>엔터티 <code>MapPin</code> · API <code>GET /map/pins</code></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>컬럼</th>
+<th>타입</th>
+<th>제약</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>floorplan_id</code></td>
+<td>BIGINT</td>
+<td>NOT NULL, FK → <code>map_floorplan</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>target_type</code></td>
+<td>VARCHAR(20)</td>
+<td>NOT NULL</td>
+<td><code>BOOTH</code> <code>FACILITY</code></td>
+</tr>
+<tr>
+<td><code>target_id</code></td>
+<td>BIGINT</td>
+<td>NOT NULL</td>
+<td>대상 ID</td>
+</tr>
+<tr>
+<td><code>x_percent</code> / <code>y_percent</code></td>
+<td>DECIMAL(5,2)</td>
+<td>NOT NULL</td>
+<td>원본 도면 기준 0.00 ~ 100.00</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><code>UNIQUE (target_type, target_id)</code> — <code>uk_map_pin_target</code>. 대상당 핀 1개</li>
+<li><code>CHECK ck_map_pin_coordinates</code> — 두 좌표 모두 0 ~ 100</li>
+<li><strong>다형 참조라 DB FK를 걸 수 없다.</strong> 대상 존재 여부는 쓰기 서비스에서 확인한다.</li>
+<li>v0.2의 픽셀 좌표(<code>x</code>, <code>y INT</code>)는 FE 크롭·축소와 맞지 않아 백분율로 바꿨다.</li>
+</ul>
+<hr>
+<h3 id="310-notice--공지">3.10 <code>notice</code> — 공지</h3>
+<blockquote>
+<p>엔터티 <code>Notice</code> · API <code>GET /notices</code>, <code>/admin/notices</code></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>컬럼</th>
+<th>타입</th>
+<th>제약</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>festival_id</code></td>
+<td>BIGINT</td>
+<td>NOT NULL, FK</td>
+<td></td>
+</tr>
+<tr>
+<td><code>category</code></td>
+<td>VARCHAR(20)</td>
+<td>NOT NULL</td>
+<td><code>URGENT</code> <code>PERFORMANCE</code> <code>SAFETY</code> <code>TRAFFIC</code> <code>INFO</code></td>
+</tr>
+<tr>
+<td><code>title</code></td>
+<td>VARCHAR(200)</td>
+<td>NOT NULL</td>
+<td>UI 입력 25자</td>
+</tr>
+<tr>
+<td><code>content</code></td>
+<td>TEXT</td>
+<td>NOT NULL</td>
+<td></td>
+</tr>
+<tr>
+<td><code>published_at</code></td>
+<td>DATETIME(3)</td>
+<td>NOT NULL</td>
+<td>저장 즉시 게시</td>
+</tr>
+<tr>
+<td><code>created_by</code></td>
+<td>BIGINT</td>
+<td>NULL, FK → <code>admin_account</code></td>
+<td>작성자</td>
+</tr>
+<tr>
+<td><code>deleted</code></td>
+<td>BOOLEAN</td>
+<td>NOT NULL, DEFAULT FALSE</td>
+<td>논리 삭제 (V2 추가)</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><code>INDEX idx_notice_published (festival_id, published_at)</code></li>
+<li>v0.2의 <code>urgent BOOLEAN</code>은 <code>category = URGENT</code>로 통합했다. 두 곳에 저장하면 불일치가 생긴다.</li>
+<li>초안·게시 종료 UI가 없어 <code>published</code>, <code>unpublished_at</code>은 제거했다.</li>
+</ul>
+<hr>
+<h3 id="311-waiting--웨이팅--핵심">3.11 <code>waiting</code> — 웨이팅 ★ 핵심</h3>
+<blockquote>
+<p>엔터티 <code>Waiting</code> · API <code>/booths/{boothId}/waitings</code>, <code>/waitings/*</code>, <code>/admin/waitings/*</code></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>컬럼</th>
+<th>타입</th>
+<th>제약</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>public_id</code></td>
+<td>CHAR(36)</td>
+<td>NOT NULL, UNIQUE</td>
+<td><strong>외부 노출 UUID.</strong> API 경로·WS 토픽 키</td>
+</tr>
+<tr>
+<td><code>booth_id</code></td>
+<td>BIGINT</td>
+<td>NOT NULL, FK → <code>booth</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>client_token</code></td>
+<td>CHAR(36)</td>
+<td>NOT NULL</td>
+<td>브라우저 익명 토큰</td>
+</tr>
+<tr>
+<td><code>student_number</code></td>
+<td>CHAR(9)</td>
+<td>NOT NULL</td>
+<td>학번 9자리</td>
+</tr>
+<tr>
+<td><code>phone_number</code></td>
+<td>CHAR(11)</td>
+<td>NOT NULL</td>
+<td>숫자 11자리. 호출 문자 발송용</td>
+</tr>
+<tr>
+<td><code>waiting_number</code></td>
+<td>INT</td>
+<td>NOT NULL</td>
+<td>부스별 대기번호 (표시용, 순번 아님)</td>
+</tr>
+<tr>
+<td><code>party_size</code></td>
+<td>TINYINT</td>
+<td>NOT NULL, CHECK 1 ~ 6</td>
+<td>인원 (V2에서 1 ~ 10 → 1 ~ 6)</td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>VARCHAR(20)</td>
+<td>NOT NULL</td>
+<td><code>WAITING</code> <code>CALLED</code> <code>ENTERED</code> <code>CANCELED</code> <code>AUTO_CANCELED</code> <code>NO_SHOW</code></td>
+</tr>
+<tr>
+<td><code>privacy_consent</code></td>
+<td>BOOLEAN</td>
+<td>NOT NULL</td>
+<td>개인정보 동의. 등록 시 <code>true</code>만 허용</td>
+</tr>
+<tr>
+<td><code>registered_at</code></td>
+<td>DATETIME(3)</td>
+<td>NOT NULL</td>
+<td>접수 시각</td>
+</tr>
+<tr>
+<td><code>called_at</code></td>
+<td>DATETIME(3)</td>
+<td>NULL</td>
+<td><strong>최초</strong> 호출 시각</td>
+</tr>
+<tr>
+<td><code>called_by</code></td>
+<td>BIGINT</td>
+<td>NULL, FK → <code>admin_account</code></td>
+<td>호출 관리자</td>
+</tr>
+<tr>
+<td><code>auto_cancel_at</code></td>
+<td>DATETIME(3)</td>
+<td>NULL</td>
+<td><code>called_at + 10분</code>. 재호출해도 유지 (V2)</td>
+</tr>
+<tr>
+<td><code>last_recalled_at</code></td>
+<td>DATETIME(3)</td>
+<td>NULL</td>
+<td>마지막 재호출 시각 (V2)</td>
+</tr>
+<tr>
+<td><code>recall_count</code></td>
+<td>INT</td>
+<td>NOT NULL, DEFAULT 0</td>
+<td>재호출 횟수 (V2)</td>
+</tr>
+<tr>
+<td><code>closed_at</code></td>
+<td>DATETIME(3)</td>
+<td>NULL</td>
+<td>종료 시각</td>
+</tr>
+<tr>
+<td><code>close_reason</code></td>
+<td>VARCHAR(30)</td>
+<td>NULL</td>
+<td>종료 사유 (§4.2) (V2)</td>
+</tr>
+<tr>
+<td><code>closed_by</code></td>
+<td>BIGINT</td>
+<td>NULL, FK → <code>admin_account</code></td>
+<td>종료 처리 관리자 (V2)</td>
+</tr>
+</tbody>
+</table>
+<p><strong>인덱스·제약</strong></p>
+<table>
+<thead>
+<tr>
+<th>이름</th>
+<th>컬럼</th>
+<th>용도</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>public_id</code> UNIQUE</td>
+<td><code>public_id</code></td>
+<td>API 조회</td>
+</tr>
+<tr>
+<td><code>uk_waiting_booth_number</code></td>
+<td><code>(booth_id, waiting_number)</code> UNIQUE</td>
+<td>번호 중복 방지 + 대기번호 현장 조회</td>
+</tr>
+<tr>
+<td><code>idx_waiting_client_status</code></td>
+<td><code>(client_token, status)</code></td>
+<td>내 대기표 복원</td>
+</tr>
+<tr>
+<td><code>idx_waiting_booth_status</code></td>
+<td><code>(booth_id, status, registered_at)</code></td>
+<td>운영자 대기 목록</td>
+</tr>
+<tr>
+<td><code>idx_waiting_auto_cancel</code></td>
+<td><code>(status, auto_cancel_at)</code></td>
+<td>10분 자동 취소 작업 대상 조회 (V2)</td>
+</tr>
+<tr>
+<td><code>ck_waiting_party_size</code></td>
+<td><code>party_size BETWEEN 1 AND 6</code></td>
+<td>인원 범위</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>v0.2의 상태값 <code>COMPLETED</code>, <code>EXPIRED</code>는 V4에서 <code>ENTERED</code>, <code>AUTO_CANCELED</code>로 정규화했다 (<code>close_reason</code>에 <code>LEGACY_*</code> 기록).
+학번에는 단순 <code>UNIQUE</code>를 두지 않는다. 다른 기기 중복 차단 기준이 아직 정해지지 않았다 (§8).</p>
+</blockquote>
+<hr>
+<h3 id="312-active_waiting--활성-대기표-잠금-신규">3.12 <code>active_waiting</code> — 활성 대기표 잠금 <code>신규</code></h3>
+<blockquote>
+<p>네이티브 SQL (<code>WaitingWorkflowService</code>) · V2 추가</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>컬럼</th>
+<th>타입</th>
+<th>제약</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>client_token</code></td>
+<td>CHAR(36)</td>
+<td>PK</td>
+<td>익명 토큰</td>
+</tr>
+<tr>
+<td><code>waiting_id</code></td>
+<td>BIGINT</td>
+<td>NOT NULL, UNIQUE, FK → <code>waiting</code></td>
+<td>현재 활성 대기표</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>전역 활성 웨이팅 1건(W001)을 원자적으로 보장하는 테이블이다.</strong> &quot;토큰당 <code>status IN ('WAITING','CALLED')</code>인 행 최대 1개&quot;는 MySQL이 부분 유니크 인덱스를 지원하지 않아 <code>waiting</code>에 직접 표현할 수 없다.
+등록 트랜잭션에서 이 테이블에 INSERT하고, PK 충돌이면 이미 활성 표가 있는 것으로 본다. 대기표가 종료되면 행을 삭제한다.
+v0.2의 Redis 키 <code>waiting:active:{boothId}:{clientToken}</code> 방식은 부스 단위라 전역 1건을 보장하지 못해 대체했다.</p>
+</blockquote>
+<hr>
+<h3 id="313-waiting_idempotency--등록-재시도-키-신규">3.13 <code>waiting_idempotency</code> — 등록 재시도 키 <code>신규</code></h3>
+<blockquote>
+<p>네이티브 SQL · V2 추가, V3 컬럼 추가</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>컬럼</th>
+<th>타입</th>
+<th>제약</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>client_token</code></td>
+<td>CHAR(36)</td>
+<td>PK</td>
+<td></td>
+</tr>
+<tr>
+<td><code>request_key</code></td>
+<td>VARCHAR(100)</td>
+<td>PK</td>
+<td><code>Idempotency-Key</code> 헤더 값</td>
+</tr>
+<tr>
+<td><code>waiting_id</code></td>
+<td>BIGINT</td>
+<td>NOT NULL, FK → <code>waiting</code></td>
+<td>첫 요청으로 만든 대기표</td>
+</tr>
+<tr>
+<td><code>response_json</code></td>
+<td>TEXT</td>
+<td>NULL</td>
+<td>첫 응답 본문 (V3)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>같은 토큰·같은 키로 재시도하면 새 번호를 만들지 않고 저장된 첫 응답을 돌려준다.</p>
+</blockquote>
+<hr>
+<h3 id="314-waiting_call_idempotency--호출-재시도-키-신규">3.14 <code>waiting_call_idempotency</code> — 호출 재시도 키 <code>신규</code></h3>
+<blockquote>
+<p>네이티브 SQL · V3 추가</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>컬럼</th>
+<th>타입</th>
+<th>제약</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>waiting_id</code></td>
+<td>BIGINT</td>
+<td>PK, FK → <code>waiting</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>request_key</code></td>
+<td>VARCHAR(100)</td>
+<td>PK</td>
+<td><code>Idempotency-Key</code> 헤더 값</td>
+</tr>
+<tr>
+<td><code>response_json</code></td>
+<td>TEXT</td>
+<td>NOT NULL</td>
+<td>첫 호출 응답 본문</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>같은 키의 호출 재시도는 SMS를 중복 발송하지 않는다.</p>
+</blockquote>
+<hr>
+<h3 id="315-waiting_event--상태-전이-이력">3.15 <code>waiting_event</code> — 상태 전이 이력</h3>
+<blockquote>
+<p>엔터티 <code>WaitingEvent</code></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>컬럼</th>
+<th>타입</th>
+<th>제약</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>waiting_id</code></td>
+<td>BIGINT</td>
+<td>NOT NULL, FK → <code>waiting</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>from_status</code></td>
+<td>VARCHAR(20)</td>
+<td>NULL</td>
+<td>최초 등록 시 NULL</td>
+</tr>
+<tr>
+<td><code>to_status</code></td>
+<td>VARCHAR(20)</td>
+<td>NOT NULL</td>
+<td></td>
+</tr>
+<tr>
+<td><code>actor_type</code></td>
+<td>VARCHAR(20)</td>
+<td>NOT NULL</td>
+<td><code>USER</code> <code>ADMIN</code> <code>SYSTEM</code></td>
+</tr>
+<tr>
+<td><code>actor_id</code></td>
+<td>BIGINT</td>
+<td>NULL</td>
+<td>관리자 ID. 다형 참조라 FK 없음</td>
+</tr>
+<tr>
+<td><code>occurred_at</code></td>
+<td>DATETIME(3)</td>
+<td>NOT NULL</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><code>INDEX idx_waiting_event_time (waiting_id, occurred_at)</code></li>
+<li><strong>대기 시간 단축 효과 분석의 원자료다.</strong> 재호출·취소 등 예외 경로를 추적하려고 <code>waiting</code>과 별도로 둔다.</li>
+</ul>
+<hr>
+<h3 id="316-sms_send_log--문자-발송-이력">3.16 <code>sms_send_log</code> — 문자 발송 이력</h3>
+<blockquote>
+<p>엔터티 <code>SmsSendLog</code></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>컬럼</th>
+<th>타입</th>
+<th>제약</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>waiting_id</code></td>
+<td>BIGINT</td>
+<td>NOT NULL, FK → <code>waiting</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>message_type</code></td>
+<td>VARCHAR(20)</td>
+<td>NOT NULL</td>
+<td><code>CALL</code> <code>RESEND</code></td>
+</tr>
+<tr>
+<td><code>status</code></td>
+<td>VARCHAR(20)</td>
+<td>NOT NULL</td>
+<td><code>SENT</code> <code>FAILED</code> <code>SKIPPED_LIMIT</code> <code>NOT_CONFIGURED</code></td>
+</tr>
+<tr>
+<td><code>provider_id</code></td>
+<td>VARCHAR(64)</td>
+<td>NULL</td>
+<td>발송 사업자 메시지 ID</td>
+</tr>
+<tr>
+<td><code>error_code</code></td>
+<td>VARCHAR(40)</td>
+<td>NULL</td>
+<td>실패 사유</td>
+</tr>
+<tr>
+<td><code>cost</code></td>
+<td>INT</td>
+<td>NULL</td>
+<td>발송 단가(원)</td>
+</tr>
+<tr>
+<td><code>requested_by</code></td>
+<td>BIGINT</td>
+<td>NULL, FK → <code>admin_account</code></td>
+<td>재발송 지시자</td>
+</tr>
+<tr>
+<td><code>sent_at</code></td>
+<td>DATETIME(3)</td>
+<td>NOT NULL</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>전화번호를 저장하지 않는다.</strong> <code>waiting.phone_number</code>만 파기하면 개인정보가 모두 사라지게 하기 위함이다.</li>
+<li>전화번호가 필수가 되어 v0.2의 <code>SKIPPED_NO_PHONE</code>은 제거했다. <code>NOT_CONFIGURED</code>는 문자 공급자가 설정되지 않은 환경의 기록값이다.</li>
+</ul>
+<hr>
+<h3 id="317-notification--알림-신규">3.17 <code>notification</code> — 알림 <code>신규</code></h3>
+<blockquote>
+<p>엔터티 <code>Notification</code> · API <code>GET /notifications</code></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>컬럼</th>
+<th>타입</th>
+<th>제약</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>festival_id</code></td>
+<td>BIGINT</td>
+<td>NOT NULL, FK</td>
+<td></td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td>VARCHAR(30)</td>
+<td>NOT NULL</td>
+<td><code>NOTICE</code> <code>WAITING_CALL</code> <code>WAITING_AUTO_CANCELED</code></td>
+</tr>
+<tr>
+<td><code>notice_id</code></td>
+<td>BIGINT</td>
+<td>NULL, FK → <code>notice</code></td>
+<td>공지 알림일 때</td>
+</tr>
+<tr>
+<td><code>waiting_id</code></td>
+<td>BIGINT</td>
+<td>NULL, FK → <code>waiting</code></td>
+<td>웨이팅 알림일 때</td>
+</tr>
+<tr>
+<td><code>recipient_client_token</code></td>
+<td>CHAR(36)</td>
+<td>NULL</td>
+<td>수신자. 공지 알림은 NULL(전체)</td>
+</tr>
+<tr>
+<td><code>title</code></td>
+<td>VARCHAR(200)</td>
+<td>NOT NULL</td>
+<td></td>
+</tr>
+<tr>
+<td><code>body</code></td>
+<td>TEXT</td>
+<td>NOT NULL</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><code>INDEX idx_notification_recipient (recipient_client_token, created_at)</code></li>
+<li><code>CHECK ck_notification_source</code> — 유형별로 대상이 하나만 존재하도록 강제한다.</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th><code>type</code></th>
+<th><code>notice_id</code></th>
+<th><code>waiting_id</code></th>
+<th><code>recipient_client_token</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>NOTICE</code></td>
+<td>NOT NULL</td>
+<td>NULL</td>
+<td>NULL</td>
+</tr>
+<tr>
+<td><code>WAITING_CALL</code> / <code>WAITING_AUTO_CANCELED</code></td>
+<td>NULL</td>
+<td>NOT NULL</td>
+<td>NOT NULL</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h3 id="318-notification_read--알림-읽음-신규">3.18 <code>notification_read</code> — 알림 읽음 <code>신규</code></h3>
+<blockquote>
+<p>엔터티 <code>NotificationRead</code> · API <code>PATCH /notifications/*/read</code></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>컬럼</th>
+<th>타입</th>
+<th>제약</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>notification_id</code></td>
+<td>BIGINT</td>
+<td>NOT NULL, FK → <code>notification</code></td>
+<td></td>
+</tr>
+<tr>
+<td><code>client_token</code></td>
+<td>CHAR(36)</td>
+<td>NOT NULL</td>
+<td>읽은 이용자</td>
+</tr>
+<tr>
+<td><code>read_at</code></td>
+<td>DATETIME(3)</td>
+<td>NOT NULL</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><code>UNIQUE (notification_id, client_token)</code> — <code>uk_notification_read_client</code>. 반복 읽음 요청도 결과가 같다.</li>
+<li>공지 알림은 전체 대상이므로 읽음 여부를 이용자별로 이 테이블에 분리해 저장한다.</li>
+</ul>
+<hr>
+<h3 id="319-audit_log--조작-이력">3.19 <code>audit_log</code> — 조작 이력</h3>
+<blockquote>
+<p>엔터티 <code>AuditLog</code> · API <code>GET /admin/audit-logs</code></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>컬럼</th>
+<th>타입</th>
+<th>제약</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>admin_account_id</code></td>
+<td>BIGINT</td>
+<td>NULL, FK</td>
+<td></td>
+</tr>
+<tr>
+<td><code>action</code></td>
+<td>VARCHAR(50)</td>
+<td>NOT NULL</td>
+<td>예: <code>WAITING_CONTACT_VIEW</code> (원문 연락처 조회)</td>
+</tr>
+<tr>
+<td><code>target_type</code></td>
+<td>VARCHAR(30)</td>
+<td>NULL</td>
+<td></td>
+</tr>
+<tr>
+<td><code>target_id</code></td>
+<td>VARCHAR(64)</td>
+<td>NULL</td>
+<td></td>
+</tr>
+<tr>
+<td><code>detail</code></td>
+<td>TEXT</td>
+<td>NULL</td>
+<td>JSON 문자열</td>
+</tr>
+<tr>
+<td><code>ip</code></td>
+<td>VARCHAR(45)</td>
+<td>NULL</td>
+<td>IPv6 대응</td>
+</tr>
+<tr>
+<td><code>occurred_at</code></td>
+<td>DATETIME(3)</td>
+<td>NOT NULL</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>원문 학번·전화번호는 <code>detail</code>과 애플리케이션 로그에 남기지 않는다.</p>
+</blockquote>
+<hr>
+<h3 id="320-privacy_purge_log--개인정보-파기-이력">3.20 <code>privacy_purge_log</code> — 개인정보 파기 이력</h3>
+<blockquote>
+<p>엔터티 <code>PrivacyPurgeLog</code> · API <code>POST /admin/privacy/purge</code></p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>컬럼</th>
+<th>타입</th>
+<th>제약</th>
+<th>설명</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>executed_by</code></td>
+<td>BIGINT</td>
+<td>NOT NULL, FK → <code>admin_account</code></td>
+<td>실행자</td>
+</tr>
+<tr>
+<td><code>target_type</code></td>
+<td>VARCHAR(20)</td>
+<td>NOT NULL</td>
+<td><code>STUDENT_NUMBER</code> <code>PHONE_NUMBER</code> <code>CLIENT_TOKEN</code> <code>ACCESS_LOG</code></td>
+</tr>
+<tr>
+<td><code>target_count</code></td>
+<td>INT</td>
+<td>NOT NULL</td>
+<td>파기 건수</td>
+</tr>
+<tr>
+<td><code>executed_at</code></td>
+<td>DATETIME(3)</td>
+<td>NOT NULL</td>
+<td></td>
+</tr>
+<tr>
+<td><code>note</code></td>
+<td>VARCHAR(255)</td>
+<td>NULL</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p>학번이 새로 수집되므로 파기 대상에 <code>STUDENT_NUMBER</code>를 추가했다. 통계용 대기 건수는 개인 식별자를 지운 상태로 보존한다.</p>
+</blockquote>
+<hr>
+<h2 id="4-상태와-분류-코드">4. 상태와 분류 코드</h2>
+<h3 id="41-코드-값">4.1 코드 값</h3>
+<table>
+<thead>
+<tr>
+<th>구분</th>
+<th>컬럼</th>
+<th>코드 값</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>관리자 권한</td>
+<td><code>admin_account.role</code></td>
+<td><code>SUPER_ADMIN</code> <code>BOOTH_ADMIN</code></td>
+</tr>
+<tr>
+<td>축제</td>
+<td><code>festival.status</code></td>
+<td><code>BEFORE</code> <code>ONGOING</code> <code>ENDED</code></td>
+</tr>
+<tr>
+<td>무대 입장</td>
+<td><code>stage.entry_status</code></td>
+<td><code>OPEN</code> <code>RESTRICTED</code></td>
+</tr>
+<tr>
+<td>공연</td>
+<td><code>performance.type</code></td>
+<td><code>BAND</code> <code>DANCE</code> <code>ARTIST</code> <code>OTHER</code></td>
+</tr>
+<tr>
+<td>부스 운영</td>
+<td><code>booth.accepting_status</code></td>
+<td><code>OPEN</code> <code>PAUSED</code> <code>CLOSED</code></td>
+</tr>
+<tr>
+<td>주간·야간</td>
+<td><code>booth.period</code></td>
+<td><code>DAY</code> <code>NIGHT</code></td>
+</tr>
+<tr>
+<td>부스 주체</td>
+<td><code>booth.organizer_type</code></td>
+<td><code>STUDENT_COUNCIL</code> <code>COLLEGE</code> <code>CLUB</code> <code>INDIVIDUAL</code> <code>UNIVERSITY</code></td>
+</tr>
+<tr>
+<td>시설</td>
+<td><code>facility.type</code></td>
+<td><code>CONTROL_ROOM</code> <code>RESTROOM</code> <code>ALCOHOL_SALES</code> <code>PHOTO_BOOTH</code> <code>SMOKING_AREA</code></td>
+</tr>
+<tr>
+<td>지도 대상</td>
+<td><code>map_pin.target_type</code></td>
+<td><code>BOOTH</code> <code>FACILITY</code></td>
+</tr>
+<tr>
+<td>공지</td>
+<td><code>notice.category</code></td>
+<td><code>URGENT</code> <code>PERFORMANCE</code> <code>SAFETY</code> <code>TRAFFIC</code> <code>INFO</code></td>
+</tr>
+<tr>
+<td>웨이팅</td>
+<td><code>waiting.status</code></td>
+<td><code>WAITING</code> <code>CALLED</code> <code>ENTERED</code> <code>CANCELED</code> <code>AUTO_CANCELED</code> <code>NO_SHOW</code></td>
+</tr>
+<tr>
+<td>행위자</td>
+<td><code>waiting_event.actor_type</code></td>
+<td><code>USER</code> <code>ADMIN</code> <code>SYSTEM</code></td>
+</tr>
+<tr>
+<td>문자 유형</td>
+<td><code>sms_send_log.message_type</code></td>
+<td><code>CALL</code> <code>RESEND</code></td>
+</tr>
+<tr>
+<td>문자 결과</td>
+<td><code>sms_send_log.status</code></td>
+<td><code>SENT</code> <code>FAILED</code> <code>SKIPPED_LIMIT</code> <code>NOT_CONFIGURED</code></td>
+</tr>
+<tr>
+<td>알림</td>
+<td><code>notification.type</code></td>
+<td><code>NOTICE</code> <code>WAITING_CALL</code> <code>WAITING_AUTO_CANCELED</code></td>
+</tr>
+<tr>
+<td>파기 대상</td>
+<td><code>privacy_purge_log.target_type</code></td>
+<td><code>STUDENT_NUMBER</code> <code>PHONE_NUMBER</code> <code>CLIENT_TOKEN</code> <code>ACCESS_LOG</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="42-웨이팅-종료-사유-waitingclose_reason">4.2 웨이팅 종료 사유 <code>waiting.close_reason</code></h3>
+<table>
+<thead>
+<tr>
+<th>값</th>
+<th>종료 상태</th>
+<th>발생</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>USER_CANCEL</code></td>
+<td><code>CANCELED</code></td>
+<td>이용자 본인 취소</td>
+</tr>
+<tr>
+<td><code>ADMIN_CANCEL</code></td>
+<td><code>CANCELED</code></td>
+<td>운영자 취소</td>
+</tr>
+<tr>
+<td><code>ENTERED</code></td>
+<td><code>ENTERED</code></td>
+<td>운영자 입장 완료</td>
+</tr>
+<tr>
+<td><code>NO_SHOW</code></td>
+<td><code>NO_SHOW</code></td>
+<td>운영자 수동 노쇼</td>
+</tr>
+<tr>
+<td><code>CALL_TIMEOUT</code></td>
+<td><code>AUTO_CANCELED</code></td>
+<td>최초 호출 후 10분 경과 (서버 작업)</td>
+</tr>
+<tr>
+<td><code>LEGACY_COMPLETED</code></td>
+<td><code>ENTERED</code></td>
+<td>V4 마이그레이션: 기존 <code>COMPLETED</code></td>
+</tr>
+<tr>
+<td><code>LEGACY_EXPIRED</code></td>
+<td><code>AUTO_CANCELED</code></td>
+<td>V4 마이그레이션: 기존 <code>EXPIRED</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="43-웨이팅-상태-전이">4.3 웨이팅 상태 전이</h3>
+<pre class="hljs"><code><div>WAITING ──호출──────────────→ CALLED ──입장 완료────────→ ENTERED
+   │                            │──최초 호출 + 10분──────→ AUTO_CANCELED
+   │                            │──운영자 수동 노쇼───────→ NO_SHOW
+   │                            │──본인/운영자 취소───────→ CANCELED
+   │                            └──재호출 (기한 유지)─────→ CALLED
+   └──본인/운영자 취소────────→ CANCELED
+</div></code></pre>
+<p><code>WAITING</code>, <code>CALLED</code>가 활성 상태이며, 이 동안만 <code>active_waiting</code> 행이 존재한다.</p>
+<hr>
+<h2 id="5-패키지-대응">5. 패키지 대응</h2>
+<p>기본 패키지 <code>com.example.kufim</code>. 각 엔터티는 Repository, Response DTO, 조회 Service, Controller를 갖는다.</p>
+<table>
+<thead>
+<tr>
+<th>패키지</th>
+<th>엔터티</th>
+<th>테이블</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>festival</code></td>
+<td><code>Festival</code></td>
+<td><code>festival</code></td>
+</tr>
+<tr>
+<td><code>admin</code></td>
+<td><code>AdminAccount</code>, <code>AdminBooth</code></td>
+<td><code>admin_account</code>, <code>admin_booth</code></td>
+</tr>
+<tr>
+<td><code>stage</code></td>
+<td><code>Stage</code></td>
+<td><code>stage</code></td>
+</tr>
+<tr>
+<td><code>performance</code></td>
+<td><code>Performance</code></td>
+<td><code>performance</code></td>
+</tr>
+<tr>
+<td><code>booth</code></td>
+<td><code>Booth</code></td>
+<td><code>booth</code></td>
+</tr>
+<tr>
+<td><code>facility</code></td>
+<td><code>Facility</code></td>
+<td><code>facility</code></td>
+</tr>
+<tr>
+<td><code>map</code></td>
+<td><code>MapFloorplan</code>, <code>MapPin</code></td>
+<td><code>map_floorplan</code>, <code>map_pin</code></td>
+</tr>
+<tr>
+<td><code>notice</code></td>
+<td><code>Notice</code></td>
+<td><code>notice</code></td>
+</tr>
+<tr>
+<td><code>waiting</code></td>
+<td><code>Waiting</code>, <code>WaitingEvent</code></td>
+<td><code>waiting</code>, <code>waiting_event</code></td>
+</tr>
+<tr>
+<td><code>waiting</code> (네이티브 SQL)</td>
+<td>—</td>
+<td><code>active_waiting</code>, <code>waiting_idempotency</code>, <code>waiting_call_idempotency</code></td>
+</tr>
+<tr>
+<td><code>notification</code></td>
+<td><code>Notification</code>, <code>NotificationRead</code></td>
+<td><code>notification</code>, <code>notification_read</code></td>
+</tr>
+<tr>
+<td><code>sms</code></td>
+<td><code>SmsSendLog</code></td>
+<td><code>sms_send_log</code></td>
+</tr>
+<tr>
+<td><code>audit</code></td>
+<td><code>AuditLog</code></td>
+<td><code>audit_log</code></td>
+</tr>
+<tr>
+<td><code>privacy</code></td>
+<td><code>PrivacyPurgeLog</code></td>
+<td><code>privacy_purge_log</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>명명 차이</strong></p>
+<table>
+<thead>
+<tr>
+<th>ERD 설계안</th>
+<th>DB 컬럼</th>
+<th>Java 필드</th>
+<th>이유</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cast</code></td>
+<td><code>cast_members</code></td>
+<td><code>castMembers</code></td>
+<td>SQL <code>CAST</code> 함수와 혼동 방지</td>
+</tr>
+</tbody>
+</table>
+<p><strong>DB 제약으로 표현하지 못한 규칙</strong> — 쓰기 서비스에서 보장한다.</p>
+<table>
+<thead>
+<tr>
+<th>규칙</th>
+<th>보장 위치</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>map_pin.target_id</code>, <code>waiting_event.actor_id</code> 대상 존재</td>
+<td>다형 참조. 쓰기 서비스에서 확인</td>
+</tr>
+<tr>
+<td>상태 전이 순서 (§4.3)</td>
+<td><code>WaitingWorkflowService</code></td>
+</tr>
+<tr>
+<td>학번·토큰 기반 다른 기기 중복 차단</td>
+<td>미정 (§8)</td>
+</tr>
+<tr>
+<td>축제 간 참조 일치 (<code>booth.festival_id</code> = <code>waiting</code> 경유 축제 등)</td>
+<td>쓰기 서비스</td>
+</tr>
+<tr>
+<td><code>BOOTH_ADMIN</code> 담당 부스 권한</td>
+<td><code>admin_booth</code> 조회로 검사</td>
+</tr>
+</tbody>
+</table>
+<hr>
+<h2 id="6-redis-사용">6. Redis 사용</h2>
+<p>v0.2에서 Redis가 맡던 대기열·채번·중복 차단은 MySQL(<code>waiting_seq</code>, <code>active_waiting</code>)로 옮겼다. 현재 Redis는 <code>mysql</code> 프로필에서 아래 두 용도만 쓴다.</p>
+<table>
+<thead>
+<tr>
+<th>용도</th>
+<th>키</th>
+<th>TTL</th>
+<th>비고</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>관리자 세션</td>
+<td>Spring Session 기본 키</td>
+<td>30분</td>
+<td><code>KUFIMSESSION</code> 쿠키</td>
+</tr>
+<tr>
+<td>요청 빈도 제한</td>
+<td><code>kufim:rate:{key}</code></td>
+<td>2분</td>
+<td><code>RedisRequestRateLimiter</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><code>local</code> 프로필은 Redis 세션 자동 설정을 제외한다.</p>
+</blockquote>
+<hr>
+<h2 id="7-보류-테이블">7. 보류 테이블</h2>
+<p>PDF·SVG에서 보라색으로 표시한 테이블이다. JPA 엔터티와 Flyway 마이그레이션에 넣지 않았다. 도입 시 새 마이그레이션과 해당 패키지를 추가한다.</p>
+<table>
+<thead>
+<tr>
+<th>테이블</th>
+<th>핵심 컬럼</th>
+<th>예정 관계</th>
+<th>보류 이유</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>stage_zone</code></td>
+<td><code>stage_id</code>, <code>name</code>, <code>latest_congestion_log_id</code>, <code>display_order</code></td>
+<td><code>stage</code> 1:N</td>
+<td>구역별 혼잡도 화면 없음</td>
+</tr>
+<tr>
+<td><code>congestion_log</code></td>
+<td><code>stage_zone_id</code>, <code>level</code>, <code>estimated_people</code>, <code>recorded_by</code>, <code>recorded_at</code></td>
+<td><code>stage_zone</code> 1:N</td>
+<td>혼잡도 입력·이력 조회 없음</td>
+</tr>
+<tr>
+<td><code>booth_image</code></td>
+<td><code>booth_id</code>, <code>image_url</code>, <code>display_order</code></td>
+<td><code>booth</code> 1:N</td>
+<td>부스 이미지 등록·갤러리 없음</td>
+</tr>
+<tr>
+<td><code>translation_cache</code></td>
+<td><code>source_hash</code>, <code>lang</code>, <code>source_text</code>, <code>translated_text</code>, <code>status</code>, <code>manual_override</code></td>
+<td>독립</td>
+<td>다국어·번역 관리 UI 없음</td>
+</tr>
+<tr>
+<td><code>map_calibration_point</code></td>
+<td><code>floorplan_id</code>, <code>lat</code>, <code>lng</code>, <code>x</code>, <code>y</code>, <code>display_order</code></td>
+<td><code>map_floorplan</code> 1:N</td>
+<td>GPS ↔ 도면 좌표 변환 없음</td>
+</tr>
+</tbody>
+</table>
+
+</body>
+</html>
