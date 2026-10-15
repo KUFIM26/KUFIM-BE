@@ -37,4 +37,10 @@ public class MapFloorplan extends BaseEntity {
     @Min(1)
     private int height;
 
+    /** 도면 이미지만 바꿉니다. 핀은 이미지 기준 퍼센트 좌표라 그대로 유지됩니다. */
+    public void replace(String imageUrl, int width, int height) {
+        this.imageUrl = imageUrl;
+        this.width = width;
+        this.height = height;
+    }
 }

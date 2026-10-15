@@ -51,6 +51,8 @@ services:
       KUFIM_ADMIN_LOGIN: ${KUFIM_ADMIN_LOGIN:-}
       KUFIM_ADMIN_PASSWORD: ${KUFIM_ADMIN_PASSWORD:-}
       WAITING_PER_IP_PER_MINUTE: ${WAITING_PER_IP_PER_MINUTE:-300}
+      # Swagger. 켜도 Caddy의 Basic 인증 뒤에서만 열립니다.
+      API_DOCS_ENABLED: ${API_DOCS_ENABLED:-false}
       JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=60
 
   web:
@@ -76,6 +78,9 @@ services:
       - '443:443/udp'
     environment:
       SITE_DOMAIN: ${SITE_DOMAIN}
+      DOCS_USER: ${DOCS_USER:-kufim-docs}
+      # 비어 있으면 아무도 모르는 비밀번호의 해시를 써서 문서를 잠급니다(빈 값이면 Caddy가 시작하지 못함).
+      DOCS_HASH: ${DOCS_HASH:-$$2a$$14$$qjQLcoHipDeMbtw3hmsejOCVadgdcXFa1Go5zrAO6NN9XWLJK7Fsy}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data

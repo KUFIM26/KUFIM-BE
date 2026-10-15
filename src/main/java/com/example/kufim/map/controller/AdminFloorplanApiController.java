@@ -19,6 +19,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -34,6 +36,8 @@ public class AdminFloorplanApiController {
 
     public record FloorplanInput(@NotNull Long festivalId, @NotBlank @Size(max = 500) String imageUrl,
             @Min(1) int width, @Min(1) int height) {}
+
+    public record FloorplanPatch(@NotBlank @Size(max = 500) String imageUrl, @Min(1) int width, @Min(1) int height) {}
 
     public record FloorplanView(long floorplanId, long festivalId, String imageUrl, int width, int height) {
         static FloorplanView from(MapFloorplan floorplan) {
@@ -64,5 +68,16 @@ public class AdminFloorplanApiController {
         var floorplan = floorplans.save(MapFloorplan.builder().festival(festival)
                 .imageUrl(input.imageUrl()).width(input.width()).height(input.height()).build());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(FloorplanView.from(floorplan)));
+    }
+
+    @PatchMapping("/{floorplanId}")
+    @Transactional
+    @Operation(summary = "지도 도면 교체", description = "도면 이미지와 크기를 바꿉니다. 핀은 퍼센트 좌표라 유지되므로, 같은 범위를 담은 이미지로 교체해야 위치가 맞습니다.", tags = "관리자 · 지도")
+    public ApiResponse<FloorplanView> replace(@PathVariable long floorplanId, @Valid @RequestBody FloorplanPatch input) {
+        access.superAdmin();
+        var floorplan = floorplans.findById(floorplanId).orElseThrow(
+                () -> new ContractException(HttpStatus.NOT_FOUND, "M003", "등록된 도면이 없습니다."));
+        floorplan.replace(input.imageUrl().trim(), input.width(), input.height());
+        return ApiResponse.ok(FloorplanView.from(floorplan));
     }
 }

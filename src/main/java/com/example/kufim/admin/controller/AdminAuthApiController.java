@@ -35,9 +35,11 @@ public class AdminAuthApiController {
     private final AdminBoothRepository assignments;
     private final AdminAccess access;
     private final RequestRateLimiter limiter;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwords;
     @Value("${app.rate-limit.admin-login-per-minute:5}") private int loginLimit;
 
     public record LoginRequest(@NotBlank String loginId, @NotBlank String password) {}
+    public record PasswordChange(@NotBlank String currentPassword, @NotBlank String newPassword) {}
 
     @PostMapping("/login")
     @Transactional
@@ -61,6 +63,23 @@ public class AdminAuthApiController {
         } catch (AuthenticationException exception) {
             throw new ContractException(HttpStatus.UNAUTHORIZED, "A001", "로그인 정보를 확인해 주세요.");
         }
+    }
+
+    /** 본인 비밀번호 변경. 다른 기기의 세션은 끊고 지금 세션은 유지합니다. */
+    @PostMapping("/password")
+    @Transactional
+    public ResponseEntity<Void> changePassword(@Valid @RequestBody PasswordChange input, HttpServletRequest request) {
+        var account = access.current();
+        limiter.check("admin-password", String.valueOf(account.getId()), loginLimit, "A002");
+        if (!passwords.matches(input.currentPassword(), account.getPasswordHash()))
+            throw new ContractException(HttpStatus.BAD_REQUEST, "A001", "현재 비밀번호가 맞지 않습니다.");
+        if (input.newPassword().length() < 12)
+            throw new ContractException(HttpStatus.BAD_REQUEST, "C001", "새 비밀번호는 12자 이상이어야 합니다.");
+        if (input.newPassword().equals(input.currentPassword()))
+            throw new ContractException(HttpStatus.BAD_REQUEST, "C001", "현재와 다른 비밀번호를 입력해 주세요.");
+        account.resetPassword(passwords.encode(input.newPassword()));
+        request.getSession(true).setAttribute("adminSessionVersion", account.getSessionVersion());
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/me")
