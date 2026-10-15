@@ -9,6 +9,15 @@
 		reverse_proxy {$BACKEND_ADDRESS:backend:8080}
 	}
 
+	# API 문서(Swagger)는 팀원만 보도록 Basic 인증을 겁니다. 백엔드에서 API_DOCS_ENABLED=true일 때만 응답합니다.
+	@docs path /swagger-ui.html /swagger-ui/* /v3/api-docs /v3/api-docs/*
+	handle @docs {
+		basic_auth {
+			{$DOCS_USER:kufim-docs} {$DOCS_HASH:$2a$14$qjQLcoHipDeMbtw3hmsejOCVadgdcXFa1Go5zrAO6NN9XWLJK7Fsy}
+		}
+		reverse_proxy {$BACKEND_ADDRESS:backend:8080}
+	}
+
 	handle {
 		root * {$WEB_ROOT:/srv}
 		# 정적 파일이 없으면 SPA의 index.html로 보냅니다(/w/{boothCode} 같은 QR 주소 포함).
