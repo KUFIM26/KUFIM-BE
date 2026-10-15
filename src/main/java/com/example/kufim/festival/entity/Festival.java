@@ -47,4 +47,14 @@ public class Festival extends BaseEntity {
     @Builder.Default
     private FestivalStatus status = FestivalStatus.BEFORE;
 
+    /** null인 값은 그대로 둡니다. 기간 검증은 호출하는 쪽에서 합니다. */
+    public void edit(String name, String description, String location, java.time.LocalDateTime startAt,
+            java.time.LocalDateTime endAt, FestivalStatus status) {
+        if (name != null) this.name = name;
+        if (description != null) this.description = description;
+        if (location != null) this.location = location;
+        if (startAt != null) this.startAt = startAt;
+        if (endAt != null) this.endAt = endAt;
+        if (status != null) this.status = status;
+    }
 }

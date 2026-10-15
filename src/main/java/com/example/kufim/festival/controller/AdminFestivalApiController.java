@@ -22,6 +22,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -42,6 +44,9 @@ public class AdminFestivalApiController {
             @NotNull @Schema(example = "2026-10-08T09:00:00+09:00") OffsetDateTime startAt,
             @NotNull @Schema(example = "2026-10-09T23:00:00+09:00") OffsetDateTime endAt,
             FestivalStatus status) {}
+
+    public record FestivalPatch(@Size(max = 100) String name, String description, @Size(max = 200) String location,
+            OffsetDateTime startAt, OffsetDateTime endAt, FestivalStatus status) {}
 
     public record FestivalView(long festivalId, String name, String description, String location,
             OffsetDateTime startAt, OffsetDateTime endAt, FestivalStatus status) {
@@ -76,5 +81,23 @@ public class AdminFestivalApiController {
                 .status(input.status() == null ? FestivalStatus.BEFORE : input.status())
                 .build());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(FestivalView.from(festival)));
+    }
+
+    @PatchMapping("/{festivalId}")
+    @Transactional
+    @Operation(summary = "축제 수정", description = "이름·장소·기간·상태를 바꿉니다. 보내지 않은 값은 유지합니다.", tags = "관리자 · 축제")
+    public ApiResponse<FestivalView> edit(@PathVariable long festivalId, @Valid @RequestBody FestivalPatch input) {
+        access.superAdmin();
+        var festival = festivals.findById(festivalId).orElseThrow(
+                () -> new ContractException(HttpStatus.NOT_FOUND, "C001", "축제를 찾을 수 없습니다."));
+        if (input.name() != null && input.name().isBlank())
+            throw new ContractException(HttpStatus.BAD_REQUEST, "C001", "축제 이름을 입력해 주세요.");
+        var start = input.startAt() == null ? festival.getStartAt() : input.startAt().atZoneSameInstant(KST).toLocalDateTime();
+        var end = input.endAt() == null ? festival.getEndAt() : input.endAt().atZoneSameInstant(KST).toLocalDateTime();
+        if (!end.isAfter(start))
+            throw new ContractException(HttpStatus.BAD_REQUEST, "C001", "축제 종료 시각은 시작 시각보다 늦어야 합니다.");
+        festival.edit(input.name() == null ? null : input.name().trim(), input.description(), input.location(),
+                start, end, input.status());
+        return ApiResponse.ok(FestivalView.from(festival));
     }
 }
