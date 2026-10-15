@@ -45,7 +45,8 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       REDIS_HOST: redis
       REDIS_PASSWORD: ${REDIS_PASSWORD}
-      FRONTEND_BASE_URL: https://${SITE_DOMAIN:?SITE_DOMAIN을 .env에 설정하세요}
+      # 부스 QR이 가리킬 프론트 주소. 비워 두면 이 서버(SITE_DOMAIN)를 씁니다.
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL:-https://${SITE_DOMAIN:?SITE_DOMAIN을 .env에 설정하세요}}
       # 같은 출처 외에 API를 직접 부를 프론트 주소(쉼표로 구분). 끝의 빈 항목은 무시됩니다.
       CORS_ALLOWED_ORIGINS: https://${SITE_DOMAIN},${CORS_EXTRA_ORIGINS:-}
       # 첫 실행에서 총괄 관리자를 만든 뒤에는 .env에서 지우고 다시 올립니다.
