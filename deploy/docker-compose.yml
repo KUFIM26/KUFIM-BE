@@ -52,6 +52,10 @@ services:
       # 첫 실행에서 총괄 관리자를 만든 뒤에는 .env에서 지우고 다시 올립니다.
       KUFIM_ADMIN_LOGIN: ${KUFIM_ADMIN_LOGIN:-}
       KUFIM_ADMIN_PASSWORD: ${KUFIM_ADMIN_PASSWORD:-}
+      SMS_API_KEY: ${SMS_API_KEY:-}
+      SMS_API_SECRET: ${SMS_API_SECRET:-}
+      SMS_SENDER: ${SMS_SENDER:-}
+      SMS_DAILY_LIMIT: ${SMS_DAILY_LIMIT:-500}
       WAITING_PER_IP_PER_MINUTE: ${WAITING_PER_IP_PER_MINUTE:-300}
       # Swagger(/swagger-ui.html). 켜면 누구나 API 목록을 볼 수 있으니 공개 운영 중에는 끕니다.
       API_DOCS_ENABLED: ${API_DOCS_ENABLED:-false}

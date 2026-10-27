@@ -52,5 +52,17 @@ app:
     waiting-per-ip-per-minute: ${WAITING_PER_IP_PER_MINUTE:60}
   frontend:
     base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
+  sms:
+    # 솔라피(solapi.com) 문자 발송. 키가 비어 있으면 발송을 시도하지 않고
+    # 이력에 NOT_CONFIGURED로만 남기며, 웨이팅 호출 자체는 그대로 동작합니다.
+    api-key: ${SMS_API_KEY:}
+    api-secret: ${SMS_API_SECRET:}
+    # 솔라피에 사전 등록된 발신번호. 등록되지 않은 번호로 보내면 3040으로 거부됩니다.
+    sender: ${SMS_SENDER:}
+    # 비용이 실제로 나가므로 하루 발송량을 제한합니다. 0 이하면 무제한.
+    daily-limit: ${SMS_DAILY_LIMIT:500}
+    # 운영진이 호출 버튼을 누르고 기다리는 경로라 짧게 끊습니다.
+    timeout-seconds: ${SMS_TIMEOUT_SECONDS:3}
+    base-url: ${SMS_BASE_URL:https://api.solapi.com}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://127.0.0.1:5173}

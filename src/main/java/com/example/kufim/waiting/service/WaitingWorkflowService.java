@@ -10,9 +10,8 @@ import com.example.kufim.notification.entity.Notification;
 import com.example.kufim.notification.entity.NotificationType;
 import com.example.kufim.notification.repository.NotificationRepository;
 import com.example.kufim.sms.entity.SmsMessageType;
-import com.example.kufim.sms.entity.SmsSendLog;
 import com.example.kufim.sms.entity.SmsStatus;
-import com.example.kufim.sms.repository.SmsSendLogRepository;
+import com.example.kufim.sms.service.WaitingSmsSender;
 import tools.jackson.databind.ObjectMapper;
 import com.example.kufim.waiting.dto.WaitingCreateRequest;
 import com.example.kufim.waiting.entity.ActorType;
@@ -43,7 +42,7 @@ public class WaitingWorkflowService {
     private final NotificationRepository notifications;
     private final JdbcTemplate jdbc;
     private final WaitingRealtimePublisher realtime;
-    private final SmsSendLogRepository smsLogs;
+    private final WaitingSmsSender sms;
     private final ObjectMapper json;
 
     @Transactional
@@ -127,11 +126,11 @@ public class WaitingWorkflowService {
         notifications.save(Notification.builder().festival(w.getBooth().getFestival()).type(NotificationType.WAITING_CALL)
                 .waiting(w).recipientClientToken(w.getClientToken()).title("부스 입장 호출")
                 .body(w.getBooth().getName() + "에서 입장할 차례입니다.").build());
-        smsLogs.save(SmsSendLog.builder().waiting(w).messageType(before == WaitingStatus.WAITING ? SmsMessageType.CALL : SmsMessageType.RESEND)
-                .status(SmsStatus.NOT_CONFIGURED).errorCode("PROVIDER_NOT_CONFIGURED").requestedBy(actor).sentAt(now).build());
+        SmsStatus smsStatus = sms.sendCall(w,
+                before == WaitingStatus.WAITING ? SmsMessageType.CALL : SmsMessageType.RESEND, actor);
         Map<String, Object> result = ticket(w);
-        // No provider is configured. Report this honestly; a sent record must only follow a provider ack.
-        result.put("smsStatus", "NOT_CONFIGURED");
+        // 발송 결과는 제공자 응답을 그대로 옮깁니다. SENT는 접수 확인(ack)을 받은 경우에만 적힙니다.
+        result.put("smsStatus", smsStatus.name());
         if (key != null && !key.isBlank())
             jdbc.update("insert into waiting_call_idempotency (waiting_id,request_key,response_json) values (?,?,?)",
                     w.getId(), key, json.writeValueAsString(result));
