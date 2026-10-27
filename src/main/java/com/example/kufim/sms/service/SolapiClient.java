@@ -43,8 +43,7 @@ public class SolapiClient {
             @Value("${app.sms.api-secret:}") String apiSecret,
             @Value("${app.sms.sender:}") String sender,
             @Value("${app.sms.base-url:https://api.solapi.com}") String baseUrl,
-            @Value("${app.sms.timeout-seconds:3}") int timeoutSeconds,
-            RestClient.Builder builder) {
+            @Value("${app.sms.timeout-seconds:3}") int timeoutSeconds) {
         this.apiKey = apiKey == null ? "" : apiKey.trim();
         this.apiSecret = apiSecret == null ? "" : apiSecret.trim();
         this.sender = sender == null ? "" : sender.replaceAll("[^0-9]", "");
@@ -53,7 +52,8 @@ public class SolapiClient {
         var factory = new JdkClientHttpRequestFactory(
                 HttpClient.newBuilder().connectTimeout(timeout).build());
         factory.setReadTimeout(timeout);
-        this.client = builder.baseUrl(baseUrl).requestFactory(factory).build();
+        // RestClient.Builder 자동 구성은 web starter에만 있어 직접 만듭니다.
+        this.client = RestClient.builder().baseUrl(baseUrl).requestFactory(factory).build();
     }
 
     /** API 키·시크릿·발신번호가 모두 있을 때만 발송을 시도합니다. */
