@@ -3,6 +3,7 @@ package com.example.kufim.notification.entity;
 import com.example.kufim.common.entity.BaseEntity;
 import com.example.kufim.festival.entity.Festival;
 import com.example.kufim.notice.entity.Notice;
+import com.example.kufim.report.entity.Report;
 import com.example.kufim.waiting.entity.Waiting;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
@@ -41,6 +42,9 @@ public class Notification extends BaseEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = true)
     @JoinColumn(name = "waiting_id", nullable = true)
     private Waiting waiting;
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "report_id", nullable = true)
+    private Report report;
 
     @Column(name = "recipient_client_token", nullable = true, length = 36)
     @JdbcTypeCode(SqlTypes.CHAR)

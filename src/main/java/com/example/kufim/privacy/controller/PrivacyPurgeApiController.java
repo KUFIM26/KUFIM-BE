@@ -41,10 +41,15 @@ public class PrivacyPurgeApiController {
             jdbc.update("update notification set recipient_client_token='00000000-0000-0000-0000-000000000000' where waiting_id=?", id);
             jdbc.update("update waiting set student_number='000000000', phone_number='00000000000', client_token='00000000-0000-0000-0000-000000000000' where id=?", id);
         }
+        var reportIds = jdbc.queryForList("select id from report where status in ('COMPLETED','CANCELED') and completed_at < ? and phone_number <> '00000000000'", Long.class, before);
+        for (var id : reportIds) {
+            jdbc.update("update notification set recipient_client_token='00000000-0000-0000-0000-000000000000' where report_id=?", id);
+            jdbc.update("update report set reporter_name='파기됨', phone_number='00000000000', client_token='00000000-0000-0000-0000-000000000000' where id=?", id);
+        }
         for (var target : new PurgeTargetType[]{PurgeTargetType.STUDENT_NUMBER, PurgeTargetType.PHONE_NUMBER, PurgeTargetType.CLIENT_TOKEN})
             logs.save(PrivacyPurgeLog.builder().executedBy(actor).targetType(target).targetCount(ids.size())
                     .executedAt(ApiClock.now()).note("beforeAt=" + request.beforeAt()).build());
-        return ApiResponse.ok(Map.of("purgedWaitingCount", ids.size(), "executedAt", ApiClock.offset(ApiClock.now()),
-                "executedBy", actor.getId()));
+        return ApiResponse.ok(Map.of("purgedWaitingCount", ids.size(), "purgedReportCount", reportIds.size(),
+                "executedAt", ApiClock.offset(ApiClock.now()), "executedBy", actor.getId()));
     }
 }

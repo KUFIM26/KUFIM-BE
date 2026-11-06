@@ -50,6 +50,9 @@ app:
   rate-limit:
     # 같은 공인 IP(캠퍼스 와이파이, 통신사 NAT) 뒤의 이용자는 이 한도를 함께 씁니다.
     waiting-per-ip-per-minute: ${WAITING_PER_IP_PER_MINUTE:60}
+    # 신고 등록은 오남용 시 운영에 부담이 되므로 웨이팅보다 좁게 둡니다.
+    report-per-token-per-minute: ${REPORT_PER_TOKEN_PER_MINUTE:3}
+    report-per-ip-per-minute: ${REPORT_PER_IP_PER_MINUTE:20}
   frontend:
     base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
   sms:

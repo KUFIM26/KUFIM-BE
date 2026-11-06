@@ -2,6 +2,7 @@ package com.example.kufim.sms.entity;
 
 import com.example.kufim.admin.entity.AdminAccount;
 import com.example.kufim.common.entity.BaseEntity;
+import com.example.kufim.report.entity.Report;
 import com.example.kufim.waiting.entity.Waiting;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.*;
@@ -23,10 +24,12 @@ import org.hibernate.type.SqlTypes;
 @AllArgsConstructor(access = AccessLevel.PRIVATE)
 public class SmsSendLog extends BaseEntity {
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "waiting_id", nullable = false)
-    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "waiting_id", nullable = true)
     private Waiting waiting;
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "report_id", nullable = true)
+    private Report report;
 
     @Column(name = "message_type", nullable = false, length = 20)
     @Enumerated(EnumType.STRING)

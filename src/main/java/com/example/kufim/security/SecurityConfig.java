@@ -30,7 +30,7 @@ public class SecurityConfig {
                 .securityContext(context -> context.securityContextRepository(repository))
                 .csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
-                        .ignoringRequestMatchers("/api/v1/admin/auth/login", "/api/v1/booths/*/waitings", "/api/v1/waitings/**", "/api/v1/notifications/**"))
+                        .ignoringRequestMatchers("/api/v1/admin/auth/login", "/api/v1/booths/*/waitings", "/api/v1/waitings/**", "/api/v1/notifications/**", "/api/v1/reports/**"))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**", "/error", "/ws", "/ws/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/v1/admin/auth/login").permitAll()

@@ -82,6 +82,7 @@ public class PersonalNotificationApiController {
                 .map(r -> ApiClock.offset(r.getReadAt())).orElse(null));
         result.put("noticeId", n.getNotice() == null ? null : n.getNotice().getId());
         result.put("waitingId", n.getWaiting() == null ? null : n.getWaiting().getPublicId());
+        result.put("reportId", n.getReport() == null ? null : n.getReport().getId());
         return result;
     }
 }
