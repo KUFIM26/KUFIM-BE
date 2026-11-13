@@ -14,3 +14,8 @@ logging:
 app:
   rate-limit:
     admin-login-per-minute: 100
+  lost-item:
+    # 테스트가 서로 영향을 주지 않도록 임시 폴더에 둡니다.
+    upload-dir: ${java.io.tmpdir}/kufim-test-uploads
+    # 테스트 중에는 사진 정리 작업이 돌지 않게 미룹니다.
+    image-cleanup-initial-delay-ms: 3600000
