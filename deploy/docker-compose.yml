@@ -66,7 +66,13 @@ services:
       WAITING_PER_IP_PER_MINUTE: ${WAITING_PER_IP_PER_MINUTE:-300}
       # Swagger(/swagger-ui.html). 켜면 누구나 API 목록을 볼 수 있으니 공개 운영 중에는 끕니다.
       API_DOCS_ENABLED: ${API_DOCS_ENABLED:-false}
+      # 습득물 사진 저장 경로. 아래 uploads 볼륨과 짝입니다.
+      KUFIM_UPLOAD_DIR: /data/uploads
       JAVA_TOOL_OPTIONS: -XX:MaxRAMPercentage=60
+    volumes:
+      # 사진은 DB가 아니라 이 볼륨에 쌓입니다. 재배포에도 남지만
+      # 인스턴스를 지우면 함께 사라지므로 백업이 필요하면 따로 압축해 두세요.
+      - uploads:/data/uploads
 
   web:
     # 프론트(KUFIM-FE)를 API 모드로 빌드해 Caddy 이미지에 넣습니다.
@@ -98,5 +104,6 @@ services:
 
 volumes:
   mysql-data:
+  uploads:
   caddy-data:
   caddy-config:

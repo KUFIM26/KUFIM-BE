@@ -3,6 +3,7 @@ package com.example.kufim.privacy.controller;
 import com.example.kufim.common.dto.ApiResponse;
 import com.example.kufim.common.exception.ContractException;
 import com.example.kufim.common.util.ApiClock;
+import com.example.kufim.lostitem.service.LostItemService;
 import com.example.kufim.privacy.entity.PrivacyPurgeLog;
 import com.example.kufim.privacy.entity.PurgeTargetType;
 import com.example.kufim.privacy.repository.PrivacyPurgeLogRepository;
@@ -23,6 +24,7 @@ public class PrivacyPurgeApiController {
     private final AdminAccess access;
     private final JdbcTemplate jdbc;
     private final PrivacyPurgeLogRepository logs;
+    private final LostItemService lostItems;
 
     public record PurgeRequest(OffsetDateTime beforeAt, String confirmation) {}
 
@@ -46,10 +48,13 @@ public class PrivacyPurgeApiController {
             jdbc.update("update notification set recipient_client_token='00000000-0000-0000-0000-000000000000' where report_id=?", id);
             jdbc.update("update report set reporter_name='파기됨', phone_number='00000000000', client_token='00000000-0000-0000-0000-000000000000' where id=?", id);
         }
+        // 습득물은 수령인 이름을 지우고 연락처와 사진까지 함께 없앱니다.
+        int purgedLostItemCount = lostItems.purgePersonalData(before);
         for (var target : new PurgeTargetType[]{PurgeTargetType.STUDENT_NUMBER, PurgeTargetType.PHONE_NUMBER, PurgeTargetType.CLIENT_TOKEN})
             logs.save(PrivacyPurgeLog.builder().executedBy(actor).targetType(target).targetCount(ids.size())
                     .executedAt(ApiClock.now()).note("beforeAt=" + request.beforeAt()).build());
         return ApiResponse.ok(Map.of("purgedWaitingCount", ids.size(), "purgedReportCount", reportIds.size(),
+                "purgedLostItemCount", purgedLostItemCount,
                 "executedAt", ApiClock.offset(ApiClock.now()), "executedBy", actor.getId()));
     }
 }
