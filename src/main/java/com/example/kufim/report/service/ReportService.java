@@ -16,6 +16,7 @@ import com.example.kufim.report.dto.ReportCompleteRequest;
 import com.example.kufim.report.dto.ReportCreateRequest;
 import com.example.kufim.report.dto.ReportNoteRequest;
 import com.example.kufim.report.entity.Report;
+import com.example.kufim.report.entity.ReportCategory;
 import com.example.kufim.report.entity.ReportStatus;
 import com.example.kufim.report.repository.ReportRepository;
 import lombok.RequiredArgsConstructor;
@@ -99,12 +100,20 @@ public class ReportService {
     // ---------------------------------------------------------------- 관리자
 
     @Transactional(readOnly = true)
-    public Map<String, Object> adminList(ReportStatus status, int page, int size) {
+    public Map<String, Object> adminList(ReportStatus status, ReportCategory category, int page, int size) {
         Festival festival = activeFestival();
         var pageable = PageRequest.of(Math.max(page, 0), size < 1 ? 20 : Math.min(size, 100));
+        // status · category 는 각각 생략 가능하므로 네 조합을 그대로 나눕니다.
         var found = status == null
-                ? reports.findByFestivalIdOrderByCreatedAtDescIdDesc(festival.getId(), pageable)
-                : reports.findByFestivalIdAndStatusOrderByCreatedAtDescIdDesc(festival.getId(), status, pageable);
+                ? (category == null
+                        ? reports.findByFestivalIdOrderByCreatedAtDescIdDesc(festival.getId(), pageable)
+                        : reports.findByFestivalIdAndCategoryOrderByCreatedAtDescIdDesc(
+                                festival.getId(), category, pageable))
+                : (category == null
+                        ? reports.findByFestivalIdAndStatusOrderByCreatedAtDescIdDesc(
+                                festival.getId(), status, pageable)
+                        : reports.findByFestivalIdAndStatusAndCategoryOrderByCreatedAtDescIdDesc(
+                                festival.getId(), status, category, pageable));
 
         Map<String, Object> summary = new LinkedHashMap<>();
         for (String key : List.of("submitted", "received", "inProgress", "completed", "canceled"))

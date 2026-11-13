@@ -1,6 +1,7 @@
 package com.example.kufim.report.repository;
 
 import com.example.kufim.report.entity.Report;
+import com.example.kufim.report.entity.ReportCategory;
 import com.example.kufim.report.entity.ReportStatus;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Page;
@@ -22,6 +23,12 @@ public interface ReportRepository extends JpaRepository<Report, Long> {
 
     Page<Report> findByFestivalIdAndStatusOrderByCreatedAtDescIdDesc(
             Long festivalId, ReportStatus status, Pageable pageable);
+
+    Page<Report> findByFestivalIdAndCategoryOrderByCreatedAtDescIdDesc(
+            Long festivalId, ReportCategory category, Pageable pageable);
+
+    Page<Report> findByFestivalIdAndStatusAndCategoryOrderByCreatedAtDescIdDesc(
+            Long festivalId, ReportStatus status, ReportCategory category, Pageable pageable);
 
     /** 관리자 목록 상단의 상태별 건수. */
     @Query("select r.status, count(r) from Report r where r.festival.id = :festivalId group by r.status")

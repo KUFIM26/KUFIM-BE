@@ -3,6 +3,7 @@ package com.example.kufim.report.controller;
 import com.example.kufim.common.dto.ApiResponse;
 import com.example.kufim.report.dto.ReportCompleteRequest;
 import com.example.kufim.report.dto.ReportNoteRequest;
+import com.example.kufim.report.entity.ReportCategory;
 import com.example.kufim.report.entity.ReportStatus;
 import com.example.kufim.report.service.ReportService;
 import com.example.kufim.security.AdminAccess;
@@ -27,11 +28,13 @@ public class AdminReportApiController {
     private final AdminAccess access;
 
     @GetMapping
-    @Operation(summary = "신고 목록", description = "status를 생략하면 전체입니다. 최신순.")
+    @Operation(summary = "신고 목록",
+            description = "status·category를 생략하면 전체입니다. 최신순. summary는 조건과 무관하게 활성 축제 전체 기준입니다.")
     public ApiResponse<Map<String, Object>> list(@RequestParam(required = false) ReportStatus status,
+            @RequestParam(required = false) ReportCategory category,
             @RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "20") int size) {
         access.superAdmin();
-        return ApiResponse.ok(service.adminList(status, page, size));
+        return ApiResponse.ok(service.adminList(status, category, page, size));
     }
 
     @GetMapping("/{reportId}")

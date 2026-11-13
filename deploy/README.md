@@ -96,7 +96,7 @@ cd ~/kufim/KUFIM-BE && git pull && cd ../KUFIM-FE && git pull
 cd ../KUFIM-BE/deploy && docker compose up -d --build
 ```
 
-이미 적용된 Flyway 마이그레이션(V1~V5)은 수정하지 말고 새 버전 파일로 추가합니다.
+이미 적용된 Flyway 마이그레이션(V1~V8)은 수정하지 말고 새 버전 파일로 추가합니다.
 
 ## 5. 백업 (무료, 서버 내부)
 
@@ -107,6 +107,12 @@ docker compose exec -T mysql sh -c 'mysqldump -ukufim -p"$MYSQL_PASSWORD" --sing
 ```
 
 축제 기간에는 `crontab -e`에 `0 * * * *`로 등록해 1시간마다 백업하고, 개인 PC로 주기적으로 내려받습니다(`scp`).
+
+### 백업 파일의 시각 읽는 법
+
+`created_at`, `received_at` 같은 시각 컬럼의 **저장 값은 실제 한국 시간보다 9시간 앞섭니다**. JDBC 접속 문자열의 `serverTimezone=Asia/Seoul`이 값을 변환해 저장하고 읽을 때 되돌리기 때문이며, API 응답은 정상입니다. 백업 파일이나 `mysql` 콘솔에서 직접 볼 때는 9시간을 빼서 읽으세요.
+
+이 규칙은 `backend` 컨테이너에 `TZ`가 없다는 전제에서 성립합니다. **`TZ: Asia/Seoul`을 추가하면 저장된 시각 전체가 9시간 틀어지므로 넣지 마세요.**
 
 ## 6. 운영 확인 목록
 

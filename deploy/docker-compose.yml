@@ -38,8 +38,15 @@ services:
         condition: service_healthy
       redis:
         condition: service_started
+    # 주의: 이 컨테이너에 TZ를 넣지 마세요(아래 DB_URL 설명 참고).
     environment:
       SPRING_PROFILES_ACTIVE: mysql
+      # serverTimezone=Asia/Seoul 때문에 JDBC 드라이버가 LocalDateTime을
+      # "JVM 기본 시간대 -> 접속 시간대"로 변환해 저장합니다. 이 컨테이너는 TZ가 없어
+      # JVM이 UTC이므로, 저장된 값은 실제 KST보다 9시간 앞서고 읽을 때 되돌려집니다.
+      # 애플리케이션은 JpaConfig의 DateTimeProvider로 이 규칙에 모든 시각을 맞춰 두었고,
+      # V8 마이그레이션이 과거 데이터도 같은 기준으로 보정했습니다.
+      # 여기에 TZ: Asia/Seoul을 추가하면 변환이 사라져 저장된 시각 전체가 9시간 틀어집니다.
       DB_URL: jdbc:mysql://mysql:3306/kufim?serverTimezone=Asia/Seoul&characterEncoding=UTF-8&useSSL=false&allowPublicKeyRetrieval=true
       DB_USERNAME: kufim
       DB_PASSWORD: ${DB_PASSWORD}
