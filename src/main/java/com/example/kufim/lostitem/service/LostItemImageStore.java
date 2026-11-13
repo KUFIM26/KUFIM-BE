@@ -15,7 +15,6 @@ import java.nio.file.StandardCopyOption;
 import java.time.Duration;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Stream;
@@ -119,7 +118,7 @@ public class LostItemImageStore {
             for (Path path : files.filter(Files::isRegularFile).toList()) {
                 String key = root.relativize(path).toString().replace('\\', '/');
                 if (keep.contains(key)) continue;
-                if (path.toFile().lastModified() > cutoff) continue;
+                if (Files.getLastModifiedTime(path).toMillis() > cutoff) continue;
                 Files.deleteIfExists(path);
                 removed++;
             }
@@ -196,10 +195,5 @@ public class LostItemImageStore {
         Path temp = Files.createTempFile(target.getParent(), "upload", ".part");
         Files.write(temp, buffer.toByteArray());
         Files.move(temp, target, StandardCopyOption.REPLACE_EXISTING);
-    }
-
-    /** 응답 Content-Type. 저장은 항상 JPEG입니다. */
-    public String contentType() {
-        return "image/jpeg".toLowerCase(Locale.ROOT);
     }
 }
