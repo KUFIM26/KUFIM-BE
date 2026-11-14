@@ -108,6 +108,20 @@ docker compose exec -T mysql sh -c 'mysqldump -ukufim -p"$MYSQL_PASSWORD" --sing
 
 축제 기간에는 `crontab -e`에 `0 * * * *`로 등록해 1시간마다 백업하고, 개인 PC로 주기적으로 내려받습니다(`scp`).
 
+### 습득물 사진 볼륨
+
+분실물센터 사진은 DB가 아니라 `uploads` 볼륨(`/data/uploads`)에 쌓입니다. `mysqldump` 백업에는 **들어 있지 않습니다.** 함께 남기려면 다음을 백업 절차에 추가하세요.
+
+```bash
+docker run --rm -v kufim_uploads:/data -v ~/kufim/backups:/out alpine   tar czf /out/uploads-$(date +%F-%H%M).tar.gz -C /data .
+```
+
+컨테이너는 `kufim`(uid 999)으로 돌기 때문에 **볼륨 소유자가 그 사용자여야 합니다.** 이미지에서 `/data/uploads`를 미리 만들어 두어 새 볼륨은 자동으로 맞춰지지만, 예전에 만들어진 볼륨이라면 한 번 고쳐야 합니다.
+
+```bash
+docker run --rm -v kufim_uploads:/data/uploads alpine chown -R 999:999 /data/uploads
+```
+
 ### 백업 파일의 시각 읽는 법
 
 `created_at`, `received_at` 같은 시각 컬럼의 **저장 값은 실제 한국 시간보다 9시간 앞섭니다**. JDBC 접속 문자열의 `serverTimezone=Asia/Seoul`이 값을 변환해 저장하고 읽을 때 되돌리기 때문이며, API 응답은 정상입니다. 백업 파일이나 `mysql` 콘솔에서 직접 볼 때는 9시간을 빼서 읽으세요.
