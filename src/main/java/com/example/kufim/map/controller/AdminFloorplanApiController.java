@@ -1,6 +1,7 @@
 package com.example.kufim.map.controller;
 
 import com.example.kufim.common.dto.ApiResponse;
+import com.example.kufim.common.util.EnglishText;
 import com.example.kufim.common.exception.ContractException;
 import com.example.kufim.festival.repository.FestivalRepository;
 import com.example.kufim.map.entity.MapFloorplan;
@@ -34,15 +35,17 @@ public class AdminFloorplanApiController {
     private final FestivalRepository festivals;
     private final MapFloorplanRepository floorplans;
 
+    // imageUrlEn은 글자만 영어로 바꾼 같은 크기의 도면입니다. 핀 좌표는 퍼센트라 한국어 도면과 공유합니다.
     public record FloorplanInput(@NotNull Long festivalId, @NotBlank @Size(max = 500) String imageUrl,
+            @Size(max = 500) String imageUrlEn, @Min(1) int width, @Min(1) int height) {}
+
+    public record FloorplanPatch(@NotBlank @Size(max = 500) String imageUrl, @Size(max = 500) String imageUrlEn,
             @Min(1) int width, @Min(1) int height) {}
 
-    public record FloorplanPatch(@NotBlank @Size(max = 500) String imageUrl, @Min(1) int width, @Min(1) int height) {}
-
-    public record FloorplanView(long floorplanId, long festivalId, String imageUrl, int width, int height) {
+    public record FloorplanView(long floorplanId, long festivalId, String imageUrl, String imageUrlEn, int width, int height) {
         static FloorplanView from(MapFloorplan floorplan) {
             return new FloorplanView(floorplan.getId(), floorplan.getFestival().getId(),
-                    floorplan.getImageUrl(), floorplan.getWidth(), floorplan.getHeight());
+                    floorplan.getImageUrl(), floorplan.getImageUrlEn(), floorplan.getWidth(), floorplan.getHeight());
         }
     }
 
@@ -66,7 +69,8 @@ public class AdminFloorplanApiController {
         if (floorplans.existsByFestivalId(input.festivalId()))
             throw new ContractException(HttpStatus.CONFLICT, "M004", "이 축제의 지도 도면이 이미 등록되어 있습니다.");
         var floorplan = floorplans.save(MapFloorplan.builder().festival(festival)
-                .imageUrl(input.imageUrl()).width(input.width()).height(input.height()).build());
+                .imageUrl(input.imageUrl()).imageUrlEn(EnglishText.of(input.imageUrlEn()))
+                .width(input.width()).height(input.height()).build());
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(FloorplanView.from(floorplan)));
     }
 
@@ -77,7 +81,7 @@ public class AdminFloorplanApiController {
         access.superAdmin();
         var floorplan = floorplans.findById(floorplanId).orElseThrow(
                 () -> new ContractException(HttpStatus.NOT_FOUND, "M003", "등록된 도면이 없습니다."));
-        floorplan.replace(input.imageUrl().trim(), input.width(), input.height());
+        floorplan.replace(input.imageUrl().trim(), input.imageUrlEn(), input.width(), input.height());
         return ApiResponse.ok(FloorplanView.from(floorplan));
     }
 }

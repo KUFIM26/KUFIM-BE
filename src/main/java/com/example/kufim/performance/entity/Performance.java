@@ -38,6 +38,10 @@ public class Performance extends BaseEntity {
     @Size(max = 200)
     private String title;
 
+    @Column(name = "title_en", length = 40)
+    @Size(max = 40)
+    private String titleEn;
+
     @Column(name = "type", nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
@@ -47,6 +51,10 @@ public class Performance extends BaseEntity {
 
     @Column(name = "description", nullable = true, columnDefinition = "TEXT")
     private String description;
+
+    @Column(name = "description_en", length = 1000)
+    @Size(max = 1000)
+    private String descriptionEn;
 
     @Column(name = "additional_description", nullable = true, columnDefinition = "TEXT")
     private String additionalDescription;
@@ -73,10 +81,15 @@ public class Performance extends BaseEntity {
     @Builder.Default
     private boolean deleted = false;
 
-    public void edit(Stage stage, String title, PerformanceType type, String description,
-            String additionalDescription, String castMembers, String setlist,
+    /** 일괄 번역이 빈 영어 칸을 채울 때만 씁니다. */
+    public void applyTitleEn(String value) { this.titleEn = value; }
+    public void applyDescriptionEn(String value) { this.descriptionEn = value; }
+    public void edit(Stage stage, String title, String titleEn, PerformanceType type, String description,
+            String descriptionEn, String additionalDescription, String castMembers, String setlist,
             LocalDateTime startAt, LocalDateTime endAt, Integer displayOrder) {
         if (stage != null) this.stage = stage;
+        this.titleEn = com.example.kufim.common.util.EnglishText.apply(this.titleEn, titleEn);
+        this.descriptionEn = com.example.kufim.common.util.EnglishText.apply(this.descriptionEn, descriptionEn);
         if (title != null) this.title = title;
         if (type != null) this.type = type;
         if (description != null) this.description = description;

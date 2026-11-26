@@ -32,6 +32,10 @@ public class Booth extends BaseEntity {
     @Size(max = 100)
     private String name;
 
+    @Column(name = "name_en", length = 40)
+    @Size(max = 40)
+    private String nameEn;
+
     @Column(name = "organizer_type", nullable = false, length = 20)
     @Enumerated(EnumType.STRING)
     @JdbcTypeCode(SqlTypes.VARCHAR)
@@ -51,8 +55,16 @@ public class Booth extends BaseEntity {
     @Size(max = 100)
     private String place;
 
+    @Column(name = "place_en", length = 60)
+    @Size(max = 60)
+    private String placeEn;
+
     @Column(name = "description", nullable = true, columnDefinition = "TEXT")
     private String description;
+
+    @Column(name = "description_en", length = 1000)
+    @Size(max = 1000)
+    private String descriptionEn;
 
     @Column(name = "operating_hours", nullable = true, length = 100)
     @Size(max = 100)
@@ -98,14 +110,21 @@ public class Booth extends BaseEntity {
     @Builder.Default
     private boolean deleted = false;
 
+    /** 일괄 번역이 빈 영어 칸을 채울 때만 씁니다. */
+    public void applyNameEn(String value) { this.nameEn = value; }
+    public void applyPlaceEn(String value) { this.placeEn = value; }
+    public void applyDescriptionEn(String value) { this.descriptionEn = value; }
     public int nextWaitingNumber() { return ++waitingSeq; }
     public void configure(AcceptingStatus status, Integer estimate) {
         if (status != null) acceptingStatus = status;
         if (estimate != null) estimateMinutesPerTeam = estimate;
     }
-    public void edit(String name, OrganizerType organizerType, BoothPeriod period, String place,
-            String description, String operatingHours, Boolean waitingEnabled) {
+    public void edit(String name, String nameEn, OrganizerType organizerType, BoothPeriod period, String place,
+            String placeEn, String description, String descriptionEn, String operatingHours, Boolean waitingEnabled) {
         if (name != null) this.name = name;
+        this.nameEn = com.example.kufim.common.util.EnglishText.apply(this.nameEn, nameEn);
+        this.placeEn = com.example.kufim.common.util.EnglishText.apply(this.placeEn, placeEn);
+        this.descriptionEn = com.example.kufim.common.util.EnglishText.apply(this.descriptionEn, descriptionEn);
         if (organizerType != null) this.organizerType = organizerType;
         if (period != null) this.period = period;
         if (place != null) this.place = place;

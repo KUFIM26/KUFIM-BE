@@ -31,6 +31,10 @@ public class Stage extends BaseEntity {
     @Size(max = 100)
     private String name;
 
+    @Column(name = "name_en", length = 40)
+    @Size(max = 40)
+    private String nameEn;
+
     @Column(name = "description", nullable = true, length = 255)
     @Size(max = 255)
     private String description;
@@ -46,8 +50,11 @@ public class Stage extends BaseEntity {
     @Builder.Default
     private int displayOrder = 0;
 
-    public void edit(String name, String description, Integer displayOrder) {
+    /** 일괄 번역이 빈 영어 칸을 채울 때만 씁니다. */
+    public void applyNameEn(String value) { this.nameEn = value; }
+    public void edit(String name, String nameEn, String description, Integer displayOrder) {
         if (name != null) this.name = name;
+        this.nameEn = com.example.kufim.common.util.EnglishText.apply(this.nameEn, nameEn);
         if (description != null) this.description = description;
         if (displayOrder != null) this.displayOrder = displayOrder;
     }

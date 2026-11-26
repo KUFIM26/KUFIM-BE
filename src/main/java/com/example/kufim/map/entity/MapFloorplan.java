@@ -29,6 +29,11 @@ public class MapFloorplan extends BaseEntity {
     @Size(max = 500)
     private String imageUrl;
 
+    /** 글자만 영어로 바꾼 같은 크기·같은 배치의 도면. 없으면 한국어 도면을 씁니다. */
+    @Column(name = "image_url_en", length = 500)
+    @Size(max = 500)
+    private String imageUrlEn;
+
     @Column(name = "width", nullable = false)
     @Min(1)
     private int width;
@@ -38,8 +43,9 @@ public class MapFloorplan extends BaseEntity {
     private int height;
 
     /** 도면 이미지만 바꿉니다. 핀은 이미지 기준 퍼센트 좌표라 그대로 유지됩니다. */
-    public void replace(String imageUrl, int width, int height) {
+    public void replace(String imageUrl, String imageUrlEn, int width, int height) {
         this.imageUrl = imageUrl;
+        this.imageUrlEn = com.example.kufim.common.util.EnglishText.apply(this.imageUrlEn, imageUrlEn);
         this.width = width;
         this.height = height;
     }

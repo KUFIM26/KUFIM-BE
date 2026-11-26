@@ -26,6 +26,11 @@ public class Festival extends BaseEntity {
     @Size(max = 100)
     private String name;
 
+    /** 영어 축제 이름. 이 필드가 응답에 있다는 것이 프런트의 영어 지원 판별 기준입니다. */
+    @Column(name = "name_en", length = 40)
+    @Size(max = 40)
+    private String nameEn;
+
     @Column(name = "description", nullable = true, columnDefinition = "TEXT")
     private String description;
 
@@ -47,10 +52,13 @@ public class Festival extends BaseEntity {
     @Builder.Default
     private FestivalStatus status = FestivalStatus.BEFORE;
 
+    /** 일괄 번역이 빈 영어 칸을 채울 때만 씁니다. */
+    public void applyNameEn(String value) { this.nameEn = value; }
     /** null인 값은 그대로 둡니다. 기간 검증은 호출하는 쪽에서 합니다. */
-    public void edit(String name, String description, String location, java.time.LocalDateTime startAt,
+    public void edit(String name, String nameEn, String description, String location, java.time.LocalDateTime startAt,
             java.time.LocalDateTime endAt, FestivalStatus status) {
         if (name != null) this.name = name;
+        this.nameEn = com.example.kufim.common.util.EnglishText.apply(this.nameEn, nameEn);
         if (description != null) this.description = description;
         if (location != null) this.location = location;
         if (startAt != null) this.startAt = startAt;

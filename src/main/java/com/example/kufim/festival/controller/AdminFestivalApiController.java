@@ -3,6 +3,7 @@ package com.example.kufim.festival.controller;
 import com.example.kufim.common.dto.ApiResponse;
 import com.example.kufim.common.exception.ContractException;
 import com.example.kufim.common.util.ApiClock;
+import com.example.kufim.common.util.EnglishText;
 import com.example.kufim.festival.entity.Festival;
 import com.example.kufim.festival.entity.FestivalStatus;
 import com.example.kufim.festival.repository.FestivalRepository;
@@ -39,19 +40,20 @@ public class AdminFestivalApiController {
 
     public record FestivalInput(
             @NotBlank @Size(max = 100) String name,
+            @Size(max = 40) String nameEn,
             String description,
             @Size(max = 200) String location,
             @NotNull @Schema(example = "2026-10-08T09:00:00+09:00") OffsetDateTime startAt,
             @NotNull @Schema(example = "2026-10-09T23:00:00+09:00") OffsetDateTime endAt,
             FestivalStatus status) {}
 
-    public record FestivalPatch(@Size(max = 100) String name, String description, @Size(max = 200) String location,
+    public record FestivalPatch(@Size(max = 100) String name, @Size(max = 40) String nameEn, String description, @Size(max = 200) String location,
             OffsetDateTime startAt, OffsetDateTime endAt, FestivalStatus status) {}
 
-    public record FestivalView(long festivalId, String name, String description, String location,
+    public record FestivalView(long festivalId, String name, String nameEn, String description, String location,
             OffsetDateTime startAt, OffsetDateTime endAt, FestivalStatus status) {
         static FestivalView from(Festival festival) {
-            return new FestivalView(festival.getId(), festival.getName(), festival.getDescription(),
+            return new FestivalView(festival.getId(), festival.getName(), festival.getNameEn(), festival.getDescription(),
                     festival.getLocation(), ApiClock.offset(festival.getStartAt()),
                     ApiClock.offset(festival.getEndAt()), festival.getStatus());
         }
@@ -75,7 +77,8 @@ public class AdminFestivalApiController {
         if (!input.endAt().isAfter(input.startAt()))
             throw new ContractException(HttpStatus.BAD_REQUEST, "C001", "축제 종료 시각은 시작 시각보다 늦어야 합니다.");
         var festival = festivals.save(Festival.builder()
-                .name(input.name().trim()).description(input.description()).location(input.location())
+                .name(input.name().trim()).nameEn(EnglishText.of(input.nameEn()))
+                .description(input.description()).location(input.location())
                 .startAt(input.startAt().atZoneSameInstant(KST).toLocalDateTime())
                 .endAt(input.endAt().atZoneSameInstant(KST).toLocalDateTime())
                 .status(input.status() == null ? FestivalStatus.BEFORE : input.status())
@@ -96,8 +99,8 @@ public class AdminFestivalApiController {
         var end = input.endAt() == null ? festival.getEndAt() : input.endAt().atZoneSameInstant(KST).toLocalDateTime();
         if (!end.isAfter(start))
             throw new ContractException(HttpStatus.BAD_REQUEST, "C001", "축제 종료 시각은 시작 시각보다 늦어야 합니다.");
-        festival.edit(input.name() == null ? null : input.name().trim(), input.description(), input.location(),
-                start, end, input.status());
+        festival.edit(input.name() == null ? null : input.name().trim(), input.nameEn(), input.description(),
+                input.location(), start, end, input.status());
         return ApiResponse.ok(FestivalView.from(festival));
     }
 }

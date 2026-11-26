@@ -62,9 +62,19 @@ app:
     # 분실물 목록은 조회만 하는 화면이라 넉넉히 두고, 업로드는 계정 기준으로 좁힙니다.
     lost-item-per-ip-per-minute: ${LOST_ITEM_PER_IP_PER_MINUTE:120}
     lost-item-upload-per-admin-per-minute: ${LOST_ITEM_UPLOAD_PER_ADMIN_PER_MINUTE:30}
+    # 번역은 글자 수로 요금이 매겨지므로 계정 기준으로 좁힙니다.
+    translate-per-admin-per-minute: ${TRANSLATE_PER_ADMIN_PER_MINUTE:30}
   lost-item:
     # 습득물 사진을 둘 경로. 배포에서는 컨테이너에 붙인 볼륨을 가리킵니다.
     upload-dir: ${KUFIM_UPLOAD_DIR:./var/uploads}
+  translate:
+    # 관리자 등록 화면의 자동 번역. 키가 비어 있으면 번역 API가 항상 503 T001을 돌려주고,
+    # 운영진은 영어를 직접 입력해 등록을 이어 갈 수 있습니다. 서비스 전체는 그대로 동작합니다.
+    deepl:
+      api-key: ${DEEPL_API_KEY:}
+      # 비워 두면 키 모양으로 고릅니다(무료 키는 :fx로 끝나고 api-free.deepl.com을 씁니다).
+      base-url: ${DEEPL_BASE_URL:}
+      timeout-seconds: ${DEEPL_TIMEOUT_SECONDS:5}
   frontend:
     base-url: ${FRONTEND_BASE_URL:http://localhost:5173}
   sms:

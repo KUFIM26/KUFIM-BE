@@ -65,7 +65,9 @@ public class PublicCatalogApiController {
         summary.put("stageEntrySummary", stages.findAll().stream().filter(s -> s.getFestival().getId().equals(f.getId()))
                 .map(s -> Map.of("stageId", s.getId(), "entryStatus", s.getEntryStatus())).toList());
         Map<String, Object> data = new LinkedHashMap<>();
-        data.put("festivalId", f.getId()); data.put("name", f.getName()); data.put("location", f.getLocation());
+        data.put("festivalId", f.getId()); data.put("name", f.getName());
+        // 프런트는 이 키가 있는지로 서버의 영어 지원 여부를 판단합니다. 값이 없어도 키는 반드시 내려보냅니다.
+        data.put("nameEn", f.getNameEn()); data.put("location", f.getLocation());
         data.put("startAt", ApiClock.offset(f.getStartAt())); data.put("endAt", ApiClock.offset(f.getEndAt()));
         data.put("status", f.getStatus()); data.put("serverTime", ApiClock.offset(ApiClock.now())); data.put("summary", summary);
         return ApiResponse.ok(data);
@@ -130,6 +132,7 @@ public class PublicCatalogApiController {
     public ApiResponse<Map<String, Object>> booth(@PathVariable long id) {
         var b = booths.findByIdAndDeletedFalse(id).orElseThrow(() -> new ContractException(HttpStatus.NOT_FOUND,"B001","부스를 찾을 수 없습니다."));
         var result = boothView(b); result.put("description", b.getDescription());
+        result.put("descriptionEn", b.getDescriptionEn());
         return ApiResponse.ok(result);
     }
 
@@ -165,7 +168,8 @@ public class PublicCatalogApiController {
         var serverTime = ApiClock.offset(ApiClock.now());
         return ApiResponse.ok(stages.findAll().stream().sorted(Comparator.comparingInt(Stage::getDisplayOrder)).map(s -> {
             Map<String, Object> row = new LinkedHashMap<>();
-            row.put("stageId", s.getId()); row.put("name", s.getName()); row.put("entryStatus", s.getEntryStatus());
+            row.put("stageId", s.getId()); row.put("name", s.getName()); row.put("nameEn", s.getNameEn());
+            row.put("entryStatus", s.getEntryStatus());
             row.put("displayOrder", s.getDisplayOrder()); row.put("zones", zonesByStage.getOrDefault(s.getId(), List.of()));
             row.put("serverTime", serverTime);
             return row;
@@ -176,7 +180,12 @@ public class PublicCatalogApiController {
     public ApiResponse<Map<String, Object>> map() {
         var f = floorplans.findAll().stream().max(Comparator.comparingLong(MapFloorplan::getId))
                 .orElseThrow(() -> new ContractException(HttpStatus.NOT_FOUND,"M003","등록된 도면이 없습니다."));
-        return ApiResponse.ok(Map.of("floorplan", Map.of("imageUrl", f.getImageUrl(), "width", f.getWidth(), "height", f.getHeight())));
+        Map<String, Object> floorplan = new LinkedHashMap<>();
+        floorplan.put("imageUrl", f.getImageUrl());
+        // 글자만 영어로 바꾼 같은 크기의 도면. 없으면 프런트가 한국어 도면을 그대로 씁니다.
+        floorplan.put("imageUrlEn", f.getImageUrlEn());
+        floorplan.put("width", f.getWidth()); floorplan.put("height", f.getHeight());
+        return ApiResponse.ok(Map.of("floorplan", floorplan));
     }
 
     @GetMapping("/map/pins")
@@ -195,14 +204,14 @@ public class PublicCatalogApiController {
             if (pin.getTargetType() == MapTargetType.BOOTH) {
                 var b = boothById.get(pin.getTargetId());
                 if (b == null || period != null && b.getPeriod() != period || organizerType != null && b.getOrganizerType() != organizerType) continue;
-                result.add(pinView(pin, b.getName()));
+                result.add(pinView(pin, b.getName(), b.getNameEn()));
             } else if (pin.getTargetType() == MapTargetType.FACILITY) {
                 var f = facilityById.get(pin.getTargetId());
                 if (f == null || facilityType != null && f.getType() != facilityType) continue;
-                result.add(pinView(pin, f.getName()));
+                result.add(pinView(pin, f.getName(), f.getNameEn()));
             } else {
                 var s = stageById.get(pin.getTargetId());
-                if (s != null) result.add(pinView(pin, s.getName()));
+                if (s != null) result.add(pinView(pin, s.getName(), s.getNameEn()));
             }
         }
         return ApiResponse.ok(result);
@@ -230,12 +239,15 @@ public class PublicCatalogApiController {
 
     private Map<String, Object> performanceView(Performance p, boolean detail) {
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("performanceId", p.getId()); result.put("title", p.getTitle()); result.put("type", p.getType());
-        result.put("stageId", p.getStage().getId()); result.put("stageName", p.getStage().getName()); result.put("place", p.getStage().getName());
+        result.put("performanceId", p.getId()); result.put("title", p.getTitle()); result.put("titleEn", p.getTitleEn());
+        result.put("type", p.getType()); result.put("stageId", p.getStage().getId());
+        result.put("stageName", p.getStage().getName()); result.put("stageNameEn", p.getStage().getNameEn());
+        result.put("place", p.getStage().getName());
         result.put("startAt", ApiClock.offset(p.getStartAt())); result.put("endAt", ApiClock.offset(p.getEndAt()));
         var now = ApiClock.now(); result.put("status", p.getEndAt().isBefore(now) ? "PAST" : p.getStartAt().isAfter(now) ? "NEXT" : "NOW");
         if (detail) {
-            result.put("description", p.getDescription()); result.put("additionalDescription", p.getAdditionalDescription());
+            result.put("description", p.getDescription()); result.put("descriptionEn", p.getDescriptionEn());
+            result.put("additionalDescription", p.getAdditionalDescription());
             result.put("castMembers", p.getCastMembers()); result.put("setlist", p.getSetlist());
         }
         return result;
@@ -247,8 +259,10 @@ public class PublicCatalogApiController {
     /** 목록 화면에서 대기 팀 수·예상 시간을 함께 보여 주도록 포함합니다(웨이팅을 쓰지 않는 부스는 null). */
     private Map<String, Object> boothView(Booth b, long waitingCount, MapPin pin) {
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("boothId", b.getId()); result.put("name", b.getName()); result.put("organizerType", b.getOrganizerType());
-        result.put("period", b.getPeriod()); result.put("place", b.getPlace()); result.put("operatingHours", b.getOperatingHours());
+        result.put("boothId", b.getId()); result.put("name", b.getName()); result.put("nameEn", b.getNameEn());
+        result.put("organizerType", b.getOrganizerType()); result.put("period", b.getPeriod());
+        result.put("place", b.getPlace()); result.put("placeEn", b.getPlaceEn());
+        result.put("operatingHours", b.getOperatingHours());
         result.put("waitingEnabled", b.isWaitingEnabled()); result.put("waitingStatus", b.isWaitingEnabled() ? b.getAcceptingStatus().name() : "DISABLED");
         result.put("waitingTeamCount", b.isWaitingEnabled() ? waitingCount : null);
         result.put("estimatedWaitMinutes", b.isWaitingEnabled() ? waitingCount * b.getEstimateMinutesPerTeam() : null);
@@ -257,8 +271,11 @@ public class PublicCatalogApiController {
     }
     private Map<String, Object> facilityView(Facility f, MapPin pin) {
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("facilityId", f.getId()); result.put("type", f.getType()); result.put("name", f.getName());
-        result.put("description", f.getDescription()); result.put("place", f.getPlace()); result.put("operatingHours", f.getOperatingHours());
+        result.put("facilityId", f.getId()); result.put("type", f.getType());
+        result.put("name", f.getName()); result.put("nameEn", f.getNameEn());
+        result.put("description", f.getDescription());
+        result.put("place", f.getPlace()); result.put("placeEn", f.getPlaceEn());
+        result.put("operatingHours", f.getOperatingHours());
         result.put("pin", pinPosition(pin));
         return result;
     }
@@ -285,13 +302,17 @@ public class PublicCatalogApiController {
         }
         return result;
     }
-    private Map<String, Object> pinView(MapPin p, String name) {
-        return Map.of("pinId", p.getId(), "targetType", p.getTargetType(), "targetId", p.getTargetId(),
-                "name", name, "xPercent", p.getXPercent(), "yPercent", p.getYPercent());
+    private Map<String, Object> pinView(MapPin p, String name, String nameEn) {
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("pinId", p.getId()); result.put("targetType", p.getTargetType()); result.put("targetId", p.getTargetId());
+        result.put("name", name); result.put("nameEn", nameEn);
+        result.put("xPercent", p.getXPercent()); result.put("yPercent", p.getYPercent());
+        return result;
     }
     private Map<String, Object> noticeView(Notice n, Map<Long, Boolean> unread) {
         Map<String, Object> result = new LinkedHashMap<>();
-        result.put("noticeId", n.getId()); result.put("title", n.getTitle()); result.put("content", n.getContent());
+        result.put("noticeId", n.getId()); result.put("title", n.getTitle()); result.put("titleEn", n.getTitleEn());
+        result.put("content", n.getContent()); result.put("contentEn", n.getContentEn());
         result.put("category", n.getCategory()); result.put("publishedAt", ApiClock.offset(n.getPublishedAt()));
         result.put("unread", unread == null ? null : unread.getOrDefault(n.getId(), false));
         return result;

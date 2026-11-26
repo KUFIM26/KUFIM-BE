@@ -6,6 +6,7 @@ import com.example.kufim.booth.repository.BoothRepository;
 import com.example.kufim.common.dto.ApiResponse;
 import com.example.kufim.common.exception.ContractException;
 import com.example.kufim.common.util.ApiClock;
+import com.example.kufim.common.util.EnglishText;
 import com.example.kufim.facility.entity.*;
 import com.example.kufim.facility.repository.FacilityRepository;
 import com.example.kufim.festival.repository.FestivalRepository;
@@ -63,15 +64,17 @@ public class AdminCatalogApiController {
 
     public record PinInput(@NotNull @DecimalMin("0.00") @DecimalMax("100.00") BigDecimal xPercent,
                            @NotNull @DecimalMin("0.00") @DecimalMax("100.00") BigDecimal yPercent) {}
-    public record PerformanceInput(Long festivalId, Long stageId, String title, PerformanceType type,
-            String description, String additionalDescription, String castMembers, String setlist,
+    // `...En` 필드는 모두 선택입니다. 보내지 않으면 기존 값을 유지하고, 빈 문자열이면 지웁니다.
+    public record PerformanceInput(Long festivalId, Long stageId, String title, String titleEn, PerformanceType type,
+            String description, String descriptionEn, String additionalDescription, String castMembers, String setlist,
             OffsetDateTime startAt, OffsetDateTime endAt, Integer displayOrder) {}
-    public record BoothInput(Long festivalId, String name, OrganizerType organizerType, BoothPeriod period,
-            String place, String description, String operatingHours, Boolean waitingEnabled, @Valid PinInput pin) {}
-    public record FacilityInput(Long festivalId, FacilityType type, String name, String description,
-            String place, String operatingHours, @Valid PinInput pin) {}
-    public record NoticeInput(String title, String content, NoticeCategory category) {}
-    public record StageInput(Long festivalId, String name, String description, Integer displayOrder) {}
+    public record BoothInput(Long festivalId, String name, String nameEn, OrganizerType organizerType, BoothPeriod period,
+            String place, String placeEn, String description, String descriptionEn, String operatingHours,
+            Boolean waitingEnabled, @Valid PinInput pin) {}
+    public record FacilityInput(Long festivalId, FacilityType type, String name, String nameEn, String description,
+            String place, String placeEn, String operatingHours, @Valid PinInput pin) {}
+    public record NoticeInput(String title, String titleEn, String content, String contentEn, NoticeCategory category) {}
+    public record StageInput(Long festivalId, String name, String nameEn, String description, Integer displayOrder) {}
     public record EntryInput(@NotNull EntryStatus entryStatus) {}
 
     @GetMapping("/performances")
@@ -96,7 +99,9 @@ public class AdminCatalogApiController {
         var stage = stages.findById(input.stageId()).orElseThrow(() -> missing("무대"));
         if (!stage.getFestival().getId().equals(festival.getId())) throw invalid();
         checkTime(input.startAt(), input.endAt());
+        checkPerformanceEnglish(input);
         var p = performances.save(Performance.builder().festival(festival).stage(stage).title(input.title())
+                .titleEn(EnglishText.of(input.titleEn())).descriptionEn(EnglishText.of(input.descriptionEn()))
                 .type(input.type()).description(input.description()).additionalDescription(input.additionalDescription())
                 .castMembers(input.castMembers()).setlist(input.setlist()).startAt(local(input.startAt())).endAt(local(input.endAt()))
                 .displayOrder(input.displayOrder() == null ? 0 : input.displayOrder()).build());
@@ -112,11 +117,12 @@ public class AdminCatalogApiController {
         var stage = input.stageId() == null ? null : stages.findById(input.stageId()).orElseThrow(() -> missing("무대"));
         if (stage != null && !stage.getFestival().getId().equals(p.getFestival().getId())) throw invalid();
         if (input.title() != null && (blank(input.title()) || input.title().length() > 15)) throw invalid();
+        checkPerformanceEnglish(input);
         var start = input.startAt() == null ? p.getStartAt() : local(input.startAt());
         var end = input.endAt() == null ? p.getEndAt() : local(input.endAt());
         if (!end.isAfter(start)) throw invalid();
-        p.edit(stage, input.title(), input.type(), input.description(), input.additionalDescription(), input.castMembers(),
-                input.setlist(), start, end, input.displayOrder());
+        p.edit(stage, input.title(), input.titleEn(), input.type(), input.description(), input.descriptionEn(),
+                input.additionalDescription(), input.castMembers(), input.setlist(), start, end, input.displayOrder());
         return ApiResponse.ok(performanceView(p));
     }
     @DeleteMapping("/performances/{id}")
@@ -144,8 +150,12 @@ public class AdminCatalogApiController {
         access.superAdmin();
         if (input.festivalId() == null || blank(input.name()) || blank(input.place()) || input.organizerType() == null || input.period() == null) throw invalid();
         var festival = festivals.findById(input.festivalId()).orElseThrow(() -> missing("축제"));
-        var b = booths.save(Booth.builder().festival(festival).name(input.name()).organizerType(input.organizerType())
-                .period(input.period()).place(input.place()).description(input.description()).operatingHours(input.operatingHours())
+        checkBoothEnglish(input);
+        var b = booths.save(Booth.builder().festival(festival).name(input.name()).nameEn(EnglishText.of(input.nameEn()))
+                .organizerType(input.organizerType()).period(input.period())
+                .place(input.place()).placeEn(EnglishText.of(input.placeEn()))
+                .description(input.description()).descriptionEn(EnglishText.of(input.descriptionEn()))
+                .operatingHours(input.operatingHours())
                 .waitingEnabled(Boolean.TRUE.equals(input.waitingEnabled())).boothCode(code()).qrIssuedAt(ApiClock.now()).build());
         if (input.pin() != null) setPin(MapTargetType.BOOTH, b.getId(), b.getFestival().getId(), input.pin());
         return ResponseEntity.status(201).body(ApiResponse.ok(boothView(b)));
@@ -159,7 +169,9 @@ public class AdminCatalogApiController {
         var b = booths.findByIdAndDeletedFalse(id).orElseThrow(() -> missing("부스"));
         if (input.festivalId() != null && !input.festivalId().equals(b.getFestival().getId())) throw invalid();
         if (input.name() != null && blank(input.name()) || input.place() != null && blank(input.place())) throw invalid();
-        b.edit(input.name(), input.organizerType(), input.period(), input.place(), input.description(), input.operatingHours(), input.waitingEnabled());
+        checkBoothEnglish(input);
+        b.edit(input.name(), input.nameEn(), input.organizerType(), input.period(), input.place(), input.placeEn(),
+                input.description(), input.descriptionEn(), input.operatingHours(), input.waitingEnabled());
         if (body.has("pin") && body.get("pin").isNull()) pins.findByTargetTypeAndTargetId(MapTargetType.BOOTH, id).ifPresent(pins::delete);
         else if (input.pin() != null) setPin(MapTargetType.BOOTH, id, b.getFestival().getId(), input.pin());
         return ApiResponse.ok(boothView(b));
@@ -188,8 +200,12 @@ public class AdminCatalogApiController {
         access.superAdmin();
         if (input.festivalId() == null || input.type() == null || blank(input.name()) || blank(input.place())) throw invalid();
         var festival = festivals.findById(input.festivalId()).orElseThrow(() -> missing("축제"));
-        var f = facilities.save(Facility.builder().festival(festival).type(input.type()).name(input.name())
-                .description(input.description()).place(input.place()).operatingHours(input.operatingHours()).build());
+        checkFacilityEnglish(input);
+        var f = facilities.save(Facility.builder().festival(festival).type(input.type())
+                .name(input.name()).nameEn(EnglishText.of(input.nameEn()))
+                .description(input.description())
+                .place(input.place()).placeEn(EnglishText.of(input.placeEn()))
+                .operatingHours(input.operatingHours()).build());
         if (input.pin() != null) setPin(MapTargetType.FACILITY, f.getId(), f.getFestival().getId(), input.pin());
         return ResponseEntity.status(201).body(ApiResponse.ok(facilityView(f)));
     }
@@ -200,7 +216,9 @@ public class AdminCatalogApiController {
         FacilityInput input = json.treeToValue(body, FacilityInput.class);
         var f = facilities.findByIdAndDeletedFalse(id).orElseThrow(() -> missing("시설"));
         if (input.festivalId() != null && !input.festivalId().equals(f.getFestival().getId())) throw invalid();
-        f.edit(input.type(), input.name(), input.description(), input.place(), input.operatingHours());
+        checkFacilityEnglish(input);
+        f.edit(input.type(), input.name(), input.nameEn(), input.description(), input.place(), input.placeEn(),
+                input.operatingHours());
         if (body.has("pin") && body.get("pin").isNull()) pins.findByTargetTypeAndTargetId(MapTargetType.FACILITY, id).ifPresent(pins::delete);
         else if (input.pin() != null) setPin(MapTargetType.FACILITY, id, f.getFestival().getId(), input.pin());
         return ApiResponse.ok(facilityView(f));
@@ -226,7 +244,10 @@ public class AdminCatalogApiController {
         var actor = access.superAdmin();
         if (blank(input.title()) || input.title().length() > 25 || blank(input.content()) || input.category() == null) throw invalid();
         var festival = festivals.findAll().stream().max(Comparator.comparingLong(f -> f.getId())).orElseThrow(() -> missing("축제"));
-        var n = notices.save(Notice.builder().festival(festival).title(input.title()).content(input.content())
+        checkNoticeEnglish(input);
+        var n = notices.save(Notice.builder().festival(festival)
+                .title(input.title()).titleEn(EnglishText.of(input.titleEn()))
+                .content(input.content()).contentEn(EnglishText.of(input.contentEn()))
                 .category(input.category()).publishedAt(ApiClock.now()).createdBy(actor).build());
         notifications.save(Notification.builder().festival(festival).type(NotificationType.NOTICE).notice(n)
                 .title(n.getTitle()).body(n.getContent()).build());
@@ -239,7 +260,8 @@ public class AdminCatalogApiController {
         access.superAdmin();
         var n = notices.findById(id).filter(row -> !row.isDeleted()).orElseThrow(() -> missing("공지"));
         if (input.title() != null && (blank(input.title()) || input.title().length() > 25)) throw invalid();
-        n.edit(input.category(), input.title(), input.content());
+        checkNoticeEnglish(input);
+        n.edit(input.category(), input.title(), input.titleEn(), input.content(), input.contentEn());
         notifications.findByNoticeId(id).ifPresent(notification -> notification.updateContent(n.getTitle(), n.getContent()));
         realtime.notice("NOTICE_UPDATED", n.getId());
         return ApiResponse.ok(noticeView(n));
@@ -265,7 +287,9 @@ public class AdminCatalogApiController {
         access.superAdmin();
         if (input.festivalId() == null || blank(input.name())) throw invalid();
         var festival = festivals.findById(input.festivalId()).orElseThrow(() -> missing("축제"));
-        var stage = stages.save(Stage.builder().festival(festival).name(input.name()).description(input.description())
+        EnglishText.checkLength(input.nameEn(), 40, "무대 이름");
+        var stage = stages.save(Stage.builder().festival(festival).name(input.name())
+                .nameEn(EnglishText.of(input.nameEn())).description(input.description())
                 .displayOrder(input.displayOrder() == null ? 0 : input.displayOrder()).build());
         return ResponseEntity.status(201).body(ApiResponse.ok(stageView(stage)));
     }
@@ -275,7 +299,8 @@ public class AdminCatalogApiController {
     public ApiResponse<Map<String, Object>> editStage(@PathVariable long id, @RequestBody StageInput input) {
         access.superAdmin(); var s = stages.findById(id).orElseThrow(() -> missing("무대"));
         if (input.festivalId() != null && !input.festivalId().equals(s.getFestival().getId())) throw invalid();
-        s.edit(input.name(), input.description(), input.displayOrder()); return ApiResponse.ok(stageView(s));
+        EnglishText.checkLength(input.nameEn(), 40, "무대 이름");
+        s.edit(input.name(), input.nameEn(), input.description(), input.displayOrder()); return ApiResponse.ok(stageView(s));
     }
     @PatchMapping("/stages/{id}/entry-status")
     @Operation(summary = "무대 입장 상태 변경", tags = "관리자 · 무대")
@@ -311,16 +336,20 @@ public class AdminCatalogApiController {
     private Map<String, Object> performanceView(Performance p) {
         Map<String, Object> view = new LinkedHashMap<>();
         view.put("performanceId", p.getId()); view.put("festivalId", p.getFestival().getId()); view.put("stageId", p.getStage().getId());
-        view.put("title", p.getTitle()); view.put("type", p.getType()); view.put("description", p.getDescription());
+        view.put("title", p.getTitle()); view.put("titleEn", p.getTitleEn()); view.put("type", p.getType());
+        view.put("description", p.getDescription()); view.put("descriptionEn", p.getDescriptionEn());
         view.put("additionalDescription", p.getAdditionalDescription()); view.put("castMembers", p.getCastMembers()); view.put("setlist", p.getSetlist());
         view.put("startAt", ApiClock.offset(p.getStartAt())); view.put("endAt", ApiClock.offset(p.getEndAt())); view.put("displayOrder", p.getDisplayOrder());
         return view;
     }
     private Map<String, Object> boothView(Booth b) {
         Map<String, Object> view = new LinkedHashMap<>();
-        view.put("boothId", b.getId()); view.put("festivalId", b.getFestival().getId()); view.put("name", b.getName());
-        view.put("organizerType", b.getOrganizerType()); view.put("period", b.getPeriod()); view.put("place", b.getPlace());
-        view.put("description", b.getDescription()); view.put("operatingHours", b.getOperatingHours());
+        view.put("boothId", b.getId()); view.put("festivalId", b.getFestival().getId());
+        view.put("name", b.getName()); view.put("nameEn", b.getNameEn());
+        view.put("organizerType", b.getOrganizerType()); view.put("period", b.getPeriod());
+        view.put("place", b.getPlace()); view.put("placeEn", b.getPlaceEn());
+        view.put("description", b.getDescription()); view.put("descriptionEn", b.getDescriptionEn());
+        view.put("operatingHours", b.getOperatingHours());
         view.put("waitingEnabled", b.isWaitingEnabled()); view.put("acceptingStatus", b.getAcceptingStatus());
         view.put("pin", pins.findByTargetTypeAndTargetId(MapTargetType.BOOTH, b.getId())
                 .map(p -> Map.of("xPercent", p.getXPercent(), "yPercent", p.getYPercent())).orElse(null));
@@ -329,21 +358,43 @@ public class AdminCatalogApiController {
     private Map<String, Object> facilityView(Facility f) {
         Map<String, Object> view = new LinkedHashMap<>();
         view.put("facilityId", f.getId()); view.put("festivalId", f.getFestival().getId()); view.put("type", f.getType());
-        view.put("name", f.getName()); view.put("description", f.getDescription()); view.put("place", f.getPlace());
+        view.put("name", f.getName()); view.put("nameEn", f.getNameEn()); view.put("description", f.getDescription());
+        view.put("place", f.getPlace()); view.put("placeEn", f.getPlaceEn());
         view.put("operatingHours", f.getOperatingHours());
         view.put("pin", pins.findByTargetTypeAndTargetId(MapTargetType.FACILITY, f.getId())
                 .map(p -> Map.of("xPercent", p.getXPercent(), "yPercent", p.getYPercent())).orElse(null));
         return view;
     }
     private Map<String, Object> noticeView(Notice n) {
-        return Map.of("noticeId", n.getId(), "title", n.getTitle(), "content", n.getContent(),
-                "category", n.getCategory(), "publishedAt", ApiClock.offset(n.getPublishedAt()));
+        Map<String, Object> view = new LinkedHashMap<>();
+        view.put("noticeId", n.getId()); view.put("title", n.getTitle()); view.put("titleEn", n.getTitleEn());
+        view.put("content", n.getContent()); view.put("contentEn", n.getContentEn());
+        view.put("category", n.getCategory()); view.put("publishedAt", ApiClock.offset(n.getPublishedAt()));
+        return view;
     }
     private Map<String, Object> stageView(Stage s) {
         Map<String, Object> view = new LinkedHashMap<>();
-        view.put("stageId", s.getId()); view.put("festivalId", s.getFestival().getId()); view.put("name", s.getName());
+        view.put("stageId", s.getId()); view.put("festivalId", s.getFestival().getId());
+        view.put("name", s.getName()); view.put("nameEn", s.getNameEn());
         view.put("description", s.getDescription()); view.put("entryStatus", s.getEntryStatus()); view.put("displayOrder", s.getDisplayOrder());
         return view;
+    }
+    private void checkPerformanceEnglish(PerformanceInput input) {
+        EnglishText.checkLength(input.titleEn(), 40, "공연 제목");
+        EnglishText.checkLength(input.descriptionEn(), 1000, "공연 설명");
+    }
+    private void checkBoothEnglish(BoothInput input) {
+        EnglishText.checkLength(input.nameEn(), 40, "부스 이름");
+        EnglishText.checkLength(input.placeEn(), 60, "부스 장소");
+        EnglishText.checkLength(input.descriptionEn(), 1000, "부스 설명");
+    }
+    private void checkFacilityEnglish(FacilityInput input) {
+        EnglishText.checkLength(input.nameEn(), 40, "시설 이름");
+        EnglishText.checkLength(input.placeEn(), 60, "시설 장소");
+    }
+    private void checkNoticeEnglish(NoticeInput input) {
+        EnglishText.checkLength(input.titleEn(), 60, "공지 제목");
+        EnglishText.checkLength(input.contentEn(), 2000, "공지 내용");
     }
     private LocalDateTime local(OffsetDateTime time) { return time.atZoneSameInstant(ZoneId.of("Asia/Seoul")).toLocalDateTime(); }
     private void checkTime(OffsetDateTime start, OffsetDateTime end) { if (!end.isAfter(start)) throw invalid(); }

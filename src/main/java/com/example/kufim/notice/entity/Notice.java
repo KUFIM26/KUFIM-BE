@@ -40,9 +40,17 @@ public class Notice extends BaseEntity {
     @Size(max = 200)
     private String title;
 
+    @Column(name = "title_en", length = 60)
+    @Size(max = 60)
+    private String titleEn;
+
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     @NotBlank
     private String content;
+
+    @Column(name = "content_en", length = 2000)
+    @Size(max = 2000)
+    private String contentEn;
 
     @Column(name = "published_at", nullable = false)
     @NotNull
@@ -56,10 +64,15 @@ public class Notice extends BaseEntity {
     @Builder.Default
     private boolean deleted = false;
 
-    public void edit(NoticeCategory category, String title, String content) {
+    /** 일괄 번역이 빈 영어 칸을 채울 때만 씁니다. */
+    public void applyTitleEn(String value) { this.titleEn = value; }
+    public void applyContentEn(String value) { this.contentEn = value; }
+    public void edit(NoticeCategory category, String title, String titleEn, String content, String contentEn) {
         if (category != null) this.category = category;
         if (title != null) this.title = title;
         if (content != null) this.content = content;
+        this.titleEn = com.example.kufim.common.util.EnglishText.apply(this.titleEn, titleEn);
+        this.contentEn = com.example.kufim.common.util.EnglishText.apply(this.contentEn, contentEn);
     }
     public void delete() { deleted = true; }
 

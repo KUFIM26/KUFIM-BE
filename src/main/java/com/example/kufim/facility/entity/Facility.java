@@ -38,6 +38,10 @@ public class Facility extends BaseEntity {
     @Size(max = 100)
     private String name;
 
+    @Column(name = "name_en", length = 40)
+    @Size(max = 40)
+    private String nameEn;
+
     @Column(name = "description", nullable = true, length = 255)
     @Size(max = 255)
     private String description;
@@ -47,6 +51,10 @@ public class Facility extends BaseEntity {
     @Size(max = 100)
     private String place;
 
+    @Column(name = "place_en", length = 60)
+    @Size(max = 60)
+    private String placeEn;
+
     @Column(name = "operating_hours", nullable = true, length = 100)
     @Size(max = 100)
     private String operatingHours;
@@ -55,8 +63,14 @@ public class Facility extends BaseEntity {
     @Builder.Default
     private boolean deleted = false;
 
-    public void edit(FacilityType type, String name, String description, String place, String operatingHours) {
+    /** 일괄 번역이 빈 영어 칸을 채울 때만 씁니다. */
+    public void applyNameEn(String value) { this.nameEn = value; }
+    public void applyPlaceEn(String value) { this.placeEn = value; }
+    public void edit(FacilityType type, String name, String nameEn, String description, String place,
+            String placeEn, String operatingHours) {
         if (type != null) this.type = type;
+        this.nameEn = com.example.kufim.common.util.EnglishText.apply(this.nameEn, nameEn);
+        this.placeEn = com.example.kufim.common.util.EnglishText.apply(this.placeEn, placeEn);
         if (name != null) this.name = name;
         if (description != null) this.description = description;
         if (place != null) this.place = place;
