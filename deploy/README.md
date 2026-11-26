@@ -96,7 +96,27 @@ cd ~/kufim/KUFIM-BE && git pull && cd ../KUFIM-FE && git pull
 cd ../KUFIM-BE/deploy && docker compose up -d --build
 ```
 
-이미 적용된 Flyway 마이그레이션(V1~V8)은 수정하지 말고 새 버전 파일로 추가합니다.
+이미 적용된 Flyway 마이그레이션(V1~V10)은 수정하지 말고 새 버전 파일로 추가합니다.
+
+## 자동 번역 키 (DeepL)
+
+관리자 등록 화면에서 영어 칸을 자동으로 채워 주는 기능입니다. **없어도 서비스는 전부 정상입니다.**
+키가 비어 있으면 번역 요청만 `503 T001`로 돌려보내고, 운영진은 영어를 직접 입력해 등록을 이어 갑니다.
+
+1. <https://www.deepl.com/pro-api> 에서 **API Free**로 가입합니다(월 50만 자).
+2. 받은 키를 서버의 `deploy/.env`에 넣습니다. 무료 키는 `:fx`로 끝납니다.
+
+   ```
+   DEEPL_API_KEY=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:fx
+   ```
+
+3. `docker compose up -d backend`로 다시 띄웁니다.
+4. 이미 등록된 내용의 빈 영어 칸은 총괄 관리자로 `POST /api/v1/admin/translate/backfill`을 한 번
+   호출하면 채워집니다. 운영진이 직접 고쳐 둔 값은 건드리지 않습니다.
+
+키는 저장소에 넣지 말고 서버의 `.env`에만 둡니다. 엔드포인트는 키 모양으로 자동으로 고르며
+(무료는 `api-free.deepl.com`), `DEEPL_BASE_URL`로 덮어쓸 수 있습니다. 번역 업체를 바꾸려면
+`Translator` 구현체만 갈아 끼우면 되고 API 계약은 그대로입니다.
 
 ## 5. 백업 (무료, 서버 내부)
 
